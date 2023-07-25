@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!-- roslaunch urdf_tutorial display.launch model:='$(find surgery_sim)/surgery_description/surgery.urdf'
+
+might need to add inertia
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="surgery">
+	<material name="LightGrey">
+		<color rgba="0.7 0.7 0.7 1.0"/>
+	</material>
+	
+	<xacro:property name="length" value="0.06" />
+	<xacro:property name="holderR" value="0.02" />
+	<xacro:property name="penR" value="0.005" />
+	
+	<link name="holder">
+		<visual>
+			<geometry>
+				<cylinder length="${length}" radius="${holderR}"/>
+			</geometry>
+<!--
+Commented out for testing. Default is red.
+			<material name="LightGrey"/>
+-->
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length="${length}" radius="${holderR}"/>
+			</geometry>
+		</collision>
+	</link>
+	
+	<link name="tool">
+		<visual>
+			<geometry>
+				<cylinder length="${length}" radius="${penR}"/>
+			</geometry>
+			<origin xyz="0 0 0"/>
+			<material name="LightGrey"/>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length="${length}" radius="${penR}"/>
+			</geometry>
+		</collision>
+	</link>
+	
+	<joint name="holder_to_tool" type="fixed">
+		<parent link="holder"/>
+		<child link="tool"/>
+		<origin xyz="0 0 ${length}"/>
+	</joint>
+	
+	<xacro:include filename="$(find ur_description)/urdf/inc/ur5e_macro.xacro" />
+	<xacro:ur5e_robot prefix="" />
+	
+	<joint name="robot_to_holder" type="fixed">
+		<parent link="wrist_3_link"/>
+		<child link="holder"/>
+		<origin xyz="0 0 0.03"/>
+	</joint>
+	
+	<transmission name="tool_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<actuator name="$tool_motor">
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+		<joint name="robot_to_holder">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+	</transmission>
+	
+	<gazebo>
+		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+			<robotNamespace>/</robotNamespace>
+		</plugin>
+	</gazebo>
+	
+</robot>
+
