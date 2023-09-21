@@ -11,6 +11,13 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
+  tf
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  message_generation  
+  omni_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -47,11 +54,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+	Plan.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -68,10 +74,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+	geometry_msgs
+	std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,7 +112,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES surgery_sim
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs tf2 tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -204,3 +211,18 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(haptic_visualize src/haptic_visualize.cpp)
+target_link_libraries(haptic_visualize ${catkin_LIBRARIES})
+
+add_executable(haptic_plan src/haptic_plan.cpp)
+target_link_libraries(haptic_plan ${catkin_LIBRARIES})
+
+add_executable(frame_tf_broadcaster src/frame_tf_broadcaster.cpp)
+target_link_libraries(frame_tf_broadcaster ${catkin_LIBRARIES})
+
+add_executable(listener src/listener.cpp)
+target_link_libraries(listener ${catkin_LIBRARIES})
+
+add_executable(switch_node src/switch_node.cpp)
+target_link_libraries(switch_node ${catkin_LIBRARIES})
