@@ -10,7 +10,9 @@ project(surgery_sim)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  roslib
   std_msgs
+  trajectory_msgs
   geometry_msgs
   tf
   tf2
@@ -18,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   message_generation  
   omni_msgs
+  pcl_ros
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -60,11 +64,10 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+	Reset.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -78,6 +81,7 @@ generate_messages(
   DEPENDENCIES
 	geometry_msgs
 	std_msgs
+	sensor_msgs
 )
 
 ################################################
@@ -112,7 +116,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES surgery_sim
-CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs tf2 tf2_ros
+CATKIN_DEPENDS roscpp rospy roslib std_msgs geometry_msgs tf2 tf2_ros trajectory_msgs message_runtime sensor_msgs
 #  DEPENDS system_lib
 )
 
@@ -125,7 +129,12 @@ CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs tf2 tf2_ros
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
+
+find_package(PCL 1.2 REQUIRED)
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -224,5 +233,18 @@ target_link_libraries(frame_tf_broadcaster ${catkin_LIBRARIES})
 add_executable(listener src/listener.cpp)
 target_link_libraries(listener ${catkin_LIBRARIES})
 
+add_executable(plan_listener src/plan_listener.cpp)
+target_link_libraries(plan_listener ${catkin_LIBRARIES})
+
+add_executable(plan_tf_broadcaster src/plan_tf_broadcaster.cpp)
+target_link_libraries(plan_tf_broadcaster ${catkin_LIBRARIES})
+
 add_executable(switch_node src/switch_node.cpp)
 target_link_libraries(switch_node ${catkin_LIBRARIES})
+
+add_executable(task_space_traj_reset src/task_space_traj_reset.cpp)
+target_link_libraries(task_space_traj_reset ${catkin_LIBRARIES} ReflexxesTypeII)
+
+##add_executable(reset_server src/reset_server.cpp)
+##target_link_libraries(reset_server ${catkin_LIBRARIES})
+##add_dependencies(reset_server surgery_sim_gencpp)

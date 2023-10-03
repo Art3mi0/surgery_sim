@@ -2,8 +2,15 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <omni_msgs/OmniButtonEvent.h>
+#include <surgery_sim/Plan.h>
+#include <surgery_sim/Reset.h>
+#include <cstdlib>
 
 omni_msgs::OmniButtonEvent button_data;
+geometry_msgs::Twist plan_point;
+geometry_msgs::Twist haptic_point;
+bool plan_received = false;
+bool haptic_received = false;
 bool button_received = false;
 
 void button_callback(const omni_msgs::OmniButtonEvent &  _data){
@@ -12,30 +19,86 @@ void button_callback(const omni_msgs::OmniButtonEvent &  _data){
 	button_received = true;
 }
 
+void plan_callback(const geometry_msgs::Twist &  _data){
+	// read the pose of the robot
+	plan_point = _data;
+	plan_received = true;
+}
+
+void haptic_callback(const geometry_msgs::Twist &  _data){
+	// read the pose of the robot
+	haptic_point = _data;
+	haptic_received = true;
+}
+
 int main(int argc, char* argv[]){
-  ros::init(argc, argv, "my_tf_broadcaster");
+  ros::init(argc, argv, "switch_node");
   ros::NodeHandle node;
+  
+  // initializing server interaction
+  ros::ServiceClient plan_client = node.serviceClient<surgery_sim::Reset>("reset");
+  ros::ServiceClient haptic_client = node.serviceClient<surgery_sim::Reset>("haptic_server");
+  ros::ServiceClient frame_client = node.serviceClient<surgery_sim::Reset>("frame_server");
+  surgery_sim::Reset reset;
  
 	// subscriber for reading haptic device button input
 	ros::Subscriber button_sub = node.subscribe("/phantom/phantom/button", 1, button_callback);
+	// Subscriber for reading the plan trajectory
+	ros::Subscriber plan_sub = node.subscribe("/refplan", 1, plan_callback);
+	// Subscriber for reading the haotic trajectory
+	ros::Subscriber haptic_sub = node.subscribe("/refhap", 1, haptic_callback);
 	// Publisher for the kinematic solver. Skips the plan point generation
   ros::Publisher pub_robot = node.advertise<geometry_msgs::Twist>("/reftraj", 1);
   // Publisher for the plan of points
-  ros::Publisher plan_pub = nh_.advertise<ur5e_control::Plan>("/plan", 1);
+  //ros::Publisher plan_pub = node.advertise<surgery_sim::Plan>("/plan", 1);
   
-  bool signal = false;
+  bool white_press;
+  bool grey_press;
   
   ros::Rate rate(10.0);
 
   while (node.ok()){
   	if (button_received){
   		if (button_data.white_button == 1){
-  			signal = false;
+  			white_press = true;
+  			grey_press = false;
+  			reset.request.plan_start = true;
+  			reset.request.plan_flag = true;
+  			reset.request.hap_start = false;
+  			reset.request.hap_flag = false;
+  			frame_client.call(reset);
+  			plan_client.call(reset);
+  			haptic_client.call(reset);
+    		ROS_INFO("out: started plan. haptic off");
   		}
-  	} else if (button_data.grey_button == 1){
-  		signal = true;
+  		else if (button_data.grey_button == 1){
+  			white_press = false;
+  			grey_press = true;
+  			reset.request.plan_flag = false;
+  			reset.request.plan_start = false;
+  			reset.request.hap_start = true;
+  			reset.request.hap_flag = true;
+  			frame_client.call(reset);
+  			plan_client.call(reset);
+  			haptic_client.call(reset);
+    		ROS_INFO("out: resetting plan. haptic on"); 			
+  		}
+  			
+  		if (white_press && plan_received){
+  			pub_robot.publish(plan_point);
+			} else if (grey_press && haptic_received){
+				pub_robot.publish(haptic_point);
+			}
+		}
+		
 		rate.sleep();
 		ros::spinOnce();
   }
   return 0;
 };
+/*
+reset.request.flag = true;
+  			if (client.call(reset))
+  			{
+    			ROS_INFO("out: %s", (bool)reset.response.out ? "true" : "false");
+  			} */

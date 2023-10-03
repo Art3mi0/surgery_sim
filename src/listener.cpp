@@ -2,9 +2,13 @@
 #include <tf/transform_listener.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PointStamped.h>
+#include <surgery_sim/Reset.h>
 
 geometry_msgs::Twist robot_initial;
 bool robot_received = false;
+bool robot_record = false;
+bool frame_record = false;
+bool publish = false;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
@@ -12,23 +16,46 @@ void robot_callback(const geometry_msgs::Twist &  _data){
 	robot_received = true;
 }
 
+bool flag(surgery_sim::Reset::Request  &req,
+         surgery_sim::Reset::Response &res){
+  if (req.hap_start){
+  	robot_record = true;
+  	frame_record = true;
+  	publish = false;
+  	ROS_INFO("request: Initialize Haptic");
+  } /*
+	if (req.flag){
+		reset_traj = false;
+		control_mode = 1;
+		ROS_INFO("request: do not reset");
+	} else{
+		control_mode = 0;
+		reset_traj = true;
+		ROS_INFO("request: reset");
+	} */
+  //ROS_INFO("request: flag=%s", (bool)req.flag ? "true" : "false");
+  //ROS_INFO("sending back response: [%s]", (bool)res.out ? "true" : "false");
+  return true;
+}
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "my_tf_listener");
 
   ros::NodeHandle node;
+  
+  // initializing server
+	ros::ServiceServer service = node.advertiseService("haptic_server", flag);
 
 	// Subscriber for reading the robot pose
 	ros::Subscriber robot_sub = node.subscribe("/ur5e/toolpose", 1, robot_callback);
 	// Publisher for the kinematic solver. Skips the plan point generation
-  ros::Publisher pub_robot = node.advertise<geometry_msgs::Twist>("/reftraj", 1);
+  ros::Publisher pub_robot = node.advertise<geometry_msgs::Twist>("/refhap", 1);
   // Publisher for the RViz visual
   ros::Publisher pub_point= node.advertise<geometry_msgs::PointStamped>( "/haptic_point", 1 );
 
   tf::TransformListener listener;
   
   // Initiating variables
-  bool init_saved = false;
-  bool robot_recorded = false;
   geometry_msgs::Twist initial;
   //geometry_msgs::PointStamped point;
   int seq = 0;
@@ -44,6 +71,16 @@ int main(int argc, char** argv){
     try{
       listener.lookupTransform("base", "haptic",  
                                ros::Time(0), transform);
+      
+      if (frame_record){
+				x = transform.getOrigin().x();
+				y = transform.getOrigin().y();
+				z = transform.getOrigin().z();
+				if (x != 0){
+					frame_record = false;
+				}
+			
+			}
     }
     catch (tf::TransformException ex){
       ROS_ERROR("%s",ex.what());
@@ -51,46 +88,17 @@ int main(int argc, char** argv){
     }
 		
 		// Records the initial position of the robot once
-		if (robot_received && !robot_recorded){
+		if (robot_received && robot_record){
 			initial = robot_initial;
-			robot_recorded = true;
+			robot_record = false;
+			publish = true;
 			//std::cout << initial;
 		}
 		
 		// Records the initial position of the pen
 		// When troubleshooting, the first reading was 0, but the next one should be an accurate reading
-		if (!init_saved){
-			x = transform.getOrigin().x();
-			y = transform.getOrigin().y();
-			z = transform.getOrigin().z();
-			if (x != 0){
-				init_saved = true;
-			}
-			
-			//std::cout << x;
-			//std::cout << y;
-			//std::cout << z;
-			
-		}
 		
-		if (init_saved){
-		// Top portion for visualizing in RViz, bottom portion for moving the simulated robot
-		// Top portion may not be updated to account changes from the listener
-		/*
-			geometry_msgs::PointStamped point;
-			std_msgs::Header header;
-			header.stamp = ros::Time::now();
-			header.seq = seq++;
-			header.frame_id = std::string( "base_link" );
-			point.header = header;
-			// The two values being subtracted are to show correctly in the pointstamped
-			// I think the real robot should have the values added
-			point.point.x = transform.getOrigin().x() - x - initial.linear.x;
-			point.point.y = transform.getOrigin().y() - y - initial.linear.y;
-			point.point.z = transform.getOrigin().z() - z + initial.linear.z;
-			pub_point.publish(point);
-		*/
-		
+		if (robot_received && publish && !frame_record){		
 			// If the point is not re-created each loop, there will be a bug where the robot keeps moving when you do not want it to
 			geometry_msgs::Twist rob_point;
 			
