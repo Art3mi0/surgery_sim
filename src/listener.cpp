@@ -19,10 +19,11 @@ void robot_callback(const geometry_msgs::Twist &  _data){
 bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
   if (req.hap_start){
-  	robot_record = true;
   	frame_record = true;
   	publish = false;
   	ROS_INFO("request: Initialize Haptic");
+  } else{
+  	publish = false;
   } /*
 	if (req.flag){
 		reset_traj = false;
@@ -78,6 +79,7 @@ int main(int argc, char** argv){
 				z = transform.getOrigin().z();
 				if (x != 0){
 					frame_record = false;
+					robot_record = true;
 				}
 			
 			}

@@ -6,6 +6,7 @@
 #include <surgery_sim/Plan.h>
 #include <pcl_ros/point_cloud.h>
 #include<sensor_msgs/PointCloud2.h>
+#include <surgery_sim/Reset.h>
 
 
 /*
@@ -15,8 +16,13 @@
 */
 
 geometry_msgs::Twist robot_initial;
+surgery_sim::Reset reset;
+surgery_sim::Plan plan;
+std::vector<geometry_msgs::Twist> plan_points;
 pcl::PointCloud<pcl::PointXYZI> dbg_cloud;
 bool robot_received = false;
+bool plan_created = false;
+bool call_traj = false;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
@@ -24,10 +30,38 @@ void robot_callback(const geometry_msgs::Twist &  _data){
 	robot_received = true;
 }
 
+bool flag(surgery_sim::Reset::Request  &req,
+         surgery_sim::Reset::Response &res){
+  bool pos_found = false;
+  std::vector<geometry_msgs::Twist> new_plan_points;
+  if (req.plan_flag){
+  plan_created = false;
+  //ROS_INFO("the y of first point: %f", plan_points[0].linear.y);
+  	for (int i = 0; i < plan_points.size() - 1; i ++) {
+  		if (pos_found){
+  			new_plan_points.push_back(plan_points[i + 1]);
+  		}else if ((robot_initial.linear.y >= plan_points[i].linear.y) && (robot_initial.linear.y <= plan_points[i + 1].linear.y)){
+  			new_plan_points.push_back(robot_initial);
+  			new_plan_points.push_back(plan_points[i + 1]);
+  			pos_found = true;
+  		}
+  	}
+  plan.points = new_plan_points;
+  plan_created = true;
+  reset.request.plan_start = true;
+  reset.request.plan_flag = true;
+  call_traj = true;
+  }	
+  return true;
+}
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "plan_listener");
 
   ros::NodeHandle node;
+  
+  ros::ServiceServer service = node.advertiseService("plan_server", flag);
+  ros::ServiceClient traj_client = node.serviceClient<surgery_sim::Reset>("reset");
 
 	// Subscriber for reading the robot pose
 	ros::Subscriber robot_sub = node.subscribe("/ur5e/toolpose", 1, robot_callback);
@@ -41,12 +75,9 @@ int main(int argc, char** argv){
   
   // Initiating variables
   bool robot_recorded = false;
-  bool plan_created = false;
   geometry_msgs::Twist initial;
   
-  surgery_sim::Plan plan;
   geometry_msgs::Twist plan_point;
-  std::vector<geometry_msgs::Twist> plan_points;
 
   int loop_freq = 10;
   ros::Rate loop_rate(loop_freq);
@@ -131,6 +162,10 @@ int main(int argc, char** argv){
 			dbg_cloud.header = pcl_conversions::toPCL(header);
 			dbg_traj_pub.publish(dbg_cloud);
 			pub_plan.publish(plan);
+			if (call_traj){
+				traj_client.call(reset);
+				call_traj = false;
+			}
 		}
 
     loop_rate.sleep();

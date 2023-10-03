@@ -79,7 +79,10 @@ bool rob_pos_received = false;
 bool reset_traj = false;
 bool start = false;
 int number_of_points = 0;
+int ctr = 2;
 bool use_rob_pos = false;
+bool init_again = false;
+int init_ctr = 0;
 
 
 geometry_msgs::Twist rob_pos;
@@ -175,6 +178,10 @@ bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
   if (req.plan_start){
   	start = true;
+  	ctr = 2;
+  	
+  		init_again = true;
+
   } else{
   	start = false;
   	use_rob_pos = true;
@@ -258,24 +265,25 @@ int main(int argc, char * argv[])
     // an array of NUMBER_OF_DOFS double values), such that the Reflexxes
     // Library can be used in a universal way.
 
-	while (!start){
-		loop_rate.sleep();
-		
-		ros::spinOnce();
-	}
-
 	// wait for a plan
-	while (!plan_available && !start){
+	while (!plan_available){
 		loop_rate.sleep();
 		
 		ros::spinOnce();
 	}
-	initialize_plan(IP);
+	//initialize_plan(IP);
 	
     // ********************************************************************
     // Starting the control loop
-    int ctr = 2;
     while(ros::ok()){
+    	while (!start){
+				loop_rate.sleep();
+				ros::spinOnce();
+			}
+			if (init_again){
+				initialize_plan(IP);
+				init_again = false;
+			}
 	    if (ResultValue != ReflexxesAPI::RML_FINAL_STATE_REACHED)
 	    {
 
@@ -308,11 +316,11 @@ int main(int argc, char * argv[])
 			*/
 			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) || reset_traj){
 				//setting the target velcoity and positions
-				reset_traj = false;
-				int next_wp;
+				//reset_traj = false;
+				int next_wp;/*
 				if(control_mode == 0)
 					next_wp = 1;
-				else 
+				else */
 					next_wp = ctr % number_of_points;
 				
 				std::cout << "moving to point:" << next_wp << std::endl;
@@ -360,9 +368,10 @@ int main(int argc, char * argv[])
 			*IP->CurrentVelocityVector      =   *OP->NewVelocityVector      ;
 			*IP->CurrentAccelerationVector  =   *OP->NewAccelerationVector  ;
 			
+			/*
 			if(!start){
 				ref = rob_pos;
-			}else{
+			}else{*/
 				// update a piece of trajectoy based on the recent calculations
 				ref.linear.x = IP->CurrentPositionVector->VecData[0];
 				ref.linear.y = IP->CurrentPositionVector->VecData[1];
@@ -370,7 +379,7 @@ int main(int argc, char * argv[])
 				ref.angular.x = IP->CurrentPositionVector->VecData[3];
 				ref.angular.y = IP->CurrentPositionVector->VecData[4];
 				ref.angular.z = IP->CurrentPositionVector->VecData[5];
-			}
+			//}
 
 			//dbg.angular.x = ctr;
 			reflexxes_pub.publish(ref);

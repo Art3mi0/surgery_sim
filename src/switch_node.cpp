@@ -12,6 +12,7 @@ geometry_msgs::Twist haptic_point;
 bool plan_received = false;
 bool haptic_received = false;
 bool button_received = false;
+int click_count = 0;
 
 void button_callback(const omni_msgs::OmniButtonEvent &  _data){
 	// read the pose of the robot
@@ -36,9 +37,10 @@ int main(int argc, char* argv[]){
   ros::NodeHandle node;
   
   // initializing server interaction
-  ros::ServiceClient plan_client = node.serviceClient<surgery_sim::Reset>("reset");
+  ros::ServiceClient traj_client = node.serviceClient<surgery_sim::Reset>("reset");
   ros::ServiceClient haptic_client = node.serviceClient<surgery_sim::Reset>("haptic_server");
   ros::ServiceClient frame_client = node.serviceClient<surgery_sim::Reset>("frame_server");
+  ros::ServiceClient plan_client = node.serviceClient<surgery_sim::Reset>("plan_server");
   surgery_sim::Reset reset;
  
 	// subscriber for reading haptic device button input
@@ -66,10 +68,16 @@ int main(int argc, char* argv[]){
   			reset.request.plan_flag = true;
   			reset.request.hap_start = false;
   			reset.request.hap_flag = false;
-  			frame_client.call(reset);
-  			plan_client.call(reset);
   			haptic_client.call(reset);
+  			frame_client.call(reset);
+  			if (click_count > 0){
+  				plan_client.call(reset);
+  			} else{
+  				traj_client.call(reset);
+  			}
     		ROS_INFO("out: started plan. haptic off");
+    		haptic_received = false;
+    		click_count ++;
   		}
   		else if (button_data.grey_button == 1){
   			white_press = false;
@@ -78,10 +86,13 @@ int main(int argc, char* argv[]){
   			reset.request.plan_start = false;
   			reset.request.hap_start = true;
   			reset.request.hap_flag = true;
-  			frame_client.call(reset);
+  			traj_client.call(reset);
   			plan_client.call(reset);
   			haptic_client.call(reset);
-    		ROS_INFO("out: resetting plan. haptic on"); 			
+  			//frame_client.call(reset);
+    		ROS_INFO("out: resetting plan. haptic on");
+    		plan_received = false;
+    		click_count ++; 			
   		}
   			
   		if (white_press && plan_received){
