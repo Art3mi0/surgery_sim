@@ -9,6 +9,7 @@ bool robot_received = false;
 bool robot_record = false;
 bool frame_record = false;
 bool publish = false;
+bool retract = false;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
@@ -21,7 +22,9 @@ bool flag(surgery_sim::Reset::Request  &req,
   if (req.hap_start){
   	frame_record = true;
   	publish = false;
+  	retract = true;
   	ROS_INFO("request: Initialize Haptic");
+  	ROS_INFO("Retracting Arm..");
   } else{
   	publish = false;
   } /*
@@ -37,6 +40,23 @@ bool flag(surgery_sim::Reset::Request  &req,
   //ROS_INFO("request: flag=%s", (bool)req.flag ? "true" : "false");
   //ROS_INFO("sending back response: [%s]", (bool)res.out ? "true" : "false");
   return true;
+}
+
+
+int sgn(double v) {
+  if (v < 0) return -1;
+  if (v > 0) return 1;
+  return 0;
+}
+
+double dead_zone(double _val){
+	double d = 0.0075; //deadzone value of 1cm
+	if (fabs(_val) <= d){
+		return 0.0;
+	}else{
+		return _val - sgn(_val)*d;  
+	}
+	
 }
 
 int main(int argc, char** argv){
@@ -63,6 +83,10 @@ int main(int argc, char** argv){
   float x;
   float y;
   float z;
+  float tran_x;
+  float tran_y;
+  float tran_z;
+  float retract_z;
 
   int loop_freq = 10;
   float dt = (float) 1/loop_freq;
@@ -103,15 +127,28 @@ int main(int argc, char** argv){
 		if (robot_received && publish && !frame_record){		
 			// If the point is not re-created each loop, there will be a bug where the robot keeps moving when you do not want it to
 			geometry_msgs::Twist rob_point;
+			tran_x = transform.getOrigin().x() - x;
+			tran_y = transform.getOrigin().y() - y;
+			tran_z = transform.getOrigin().z() - z;
 			
 			// The leading int is the scalar. The larger the number, the more the robot will move
 			// The initial pen position is saved and subtracted from the current, so new movements of the pen will move the robot accordingly by being added to the robot's starting position which is saved. This is to allow the user to choose a comfortable starting position for the pen in the real world	
-	    rob_point.linear.x = 2.6 *(transform.getOrigin().x() - x) + initial.linear.x;
-	    rob_point.linear.y = 2.6 *(transform.getOrigin().y() - y) + initial.linear.y;
-	    rob_point.linear.z = 3.5 *(transform.getOrigin().z() - z) + initial.linear.z;
+	    rob_point.linear.x = 2.6 *dead_zone(tran_x) + initial.linear.x;
+	    rob_point.linear.y = 2.6 *dead_zone(tran_y) + initial.linear.y;
+	    rob_point.linear.z = 3.5 *dead_zone(tran_z) + initial.linear.z + .02;
 	    rob_point.angular.x = initial.angular.x;
 	    rob_point.angular.y = initial.angular.y;
 	    rob_point.angular.z = initial.angular.z;
+	    
+	    if (retract){
+	    	retract_z = (.5* ((initial.linear.z + .02) - robot_initial.linear.z)) + robot_initial.linear.z;
+	    	rob_point.linear.z = retract_z;
+	    	if (robot_initial.linear.z >= initial.linear.z + .019){
+	    		retract = false;
+	    		ROS_INFO("Retracting Complete");
+	    	}
+	    }
+	    
 	    pub_robot.publish(rob_point);
 	  
 		}

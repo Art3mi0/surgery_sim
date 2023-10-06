@@ -314,6 +314,7 @@ int main(int argc, char * argv[])
     			}
     	}
 			*/
+			// && (ctr < number_of_points)
 			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) || reset_traj){
 				//setting the target velcoity and positions
 				//reset_traj = false;
