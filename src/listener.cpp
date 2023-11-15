@@ -50,7 +50,7 @@ int sgn(double v) {
 }
 
 double dead_zone(double _val){
-	double d = 0.0075; //deadzone value of 1cm
+	double d = 0.0045; //deadzone value of 1cm
 	if (fabs(_val) <= d){
 		return 0.0;
 	}else{

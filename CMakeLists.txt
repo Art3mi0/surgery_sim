@@ -242,6 +242,9 @@ target_link_libraries(plan_tf_broadcaster ${catkin_LIBRARIES})
 add_executable(switch_node src/switch_node.cpp)
 target_link_libraries(switch_node ${catkin_LIBRARIES})
 
+add_executable(key_test src/test.cpp)
+target_link_libraries(key_test ${catkin_LIBRARIES})
+
 add_executable(task_space_traj_reset src/task_space_traj_reset.cpp)
 target_link_libraries(task_space_traj_reset ${catkin_LIBRARIES} ReflexxesTypeII)
 
