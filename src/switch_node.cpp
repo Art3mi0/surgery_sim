@@ -57,7 +57,7 @@ void get_phantom_pos(const geometry_msgs::PoseStamped & _data){
 
 // desired values of x, y, z for centering the haptic device
 double x_d = -0.007;
-double y_d = -.033;
+double y_d = -.043;
 double z_d = 0.046;
 
 // ry = hx divide r by 3 rz = hz r/3 -rx=hy
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]){
   	}
   	
   	//left-white middle-grey
-  	//Left pedal-97	Middle pedal-98 Right pedal-99
+  	//Left pedal-a	Middle pedal-b Right pedal-c
   	if (button_received){
   		if (button_data.data == 97 && (click_count == 0 || white_flag)){
   			white_flag = false;
@@ -225,7 +225,8 @@ int main(int argc, char* argv[]){
 		}
 		//if (h_pose_received && robot_received){
 			calc_center_force();
-			force_pub.publish(centering_force);/*
+			force_pub.publish(centering_force);
+			/*
 			ROS_INFO("Differences: x:%f y:%f z:%f", phantom_pos.pose.position.x - ry/3, phantom_pos.pose.position.y - -rx, phantom_pos.pose.position.z - rz/3);
 		}*/
 		
