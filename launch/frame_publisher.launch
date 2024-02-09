@@ -1,0 +1,4 @@
+<launch>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera1_checkerboard" args="0.012 0.025 0.697 0.652 0.630 -0.272 0.322 checkerboard pylon_camera1" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera2_checkerboard" args="0.047 -0.038 0.656 0.638 0.658 -0.311 0.252 checkerboard pylon_camera2" />
+</launch>

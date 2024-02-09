@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){
 			transform.setOrigin( tf::Vector3(x, -z, y) ); 
 		  //transform.setOrigin( tf::Vector3(0, 0, 0) );
 		  transform.setRotation( tf::Quaternion(0, 0, 0, 1) );
-		  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link_optical", "haptic"));
+		  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link_optical_left", "haptic"));
 		}
 		rate.sleep();
 		ros::spinOnce();
