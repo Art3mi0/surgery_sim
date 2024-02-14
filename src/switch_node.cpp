@@ -57,8 +57,8 @@ void get_phantom_pos(const geometry_msgs::PoseStamped & _data){
 
 // desired values of x, y, z for centering the haptic device
 double x_d = -0.007;
-double y_d = -.043;
-double z_d = 0.046;
+double y_d = -.053;
+double z_d = 0.07;
 
 // ry = hx divide r by 3 rz = hz r/3 -rx=hy
 
@@ -90,7 +90,7 @@ void calc_center_force(void){
 	de_y = e_y - e_y_prev;
 	de_z = e_z - e_z_prev;
         //low pass filter for reducing the noise and jerks in the forces
-	double tau = 0.8;
+	double tau = .3;
 	centering_force.force.x = (kp_x*e_x + kd_x*de_x)*(1-tau) + tau*centering_force_prev.force.x;
 	centering_force.force.y = (kp_y*e_y + kd_y*de_y)*(1-tau) + tau*centering_force_prev.force.y;
   centering_force.force.z = (kp_z*e_z + kd_z*de_z)*(1-tau) + tau*centering_force_prev.force.z + 0.2;//the last component is for the effect hand weight
@@ -217,13 +217,14 @@ int main(int argc, char* argv[]){
   		}
   			
   		if (timer_white && plan_received){
-  			update_force(rx, ry, rz);
+  			//update_force(rx, ry, rz); /*
   			pub_robot.publish(plan_point);
 			} else if (timer_grey && haptic_received){
 				pub_robot.publish(haptic_point);
 			}
 		}
 		//if (h_pose_received && robot_received){
+			update_force(rx, ry, rz);
 			calc_center_force();
 			force_pub.publish(centering_force);
 			/*

@@ -50,7 +50,7 @@ int sgn(double v) {
 }
 
 double dead_zone(double _val){
-	double d = 0.0045; //deadzone value of 1cm
+	double d = 0.002; //deadzone value of 1cm
 	if (fabs(_val) <= d){
 		return 0.0;
 	}else{
@@ -133,8 +133,8 @@ int main(int argc, char** argv){
 			
 			// The leading int is the scalar. The larger the number, the more the robot will move
 			// The initial pen position is saved and subtracted from the current, so new movements of the pen will move the robot accordingly by being added to the robot's starting position which is saved. This is to allow the user to choose a comfortable starting position for the pen in the real world	
-	    rob_point.linear.x = 2.6 *dead_zone(tran_x) + initial.linear.x;
-	    rob_point.linear.y = 2.6 *dead_zone(tran_y) + initial.linear.y;
+	    rob_point.linear.x = 3 *dead_zone(tran_x) + initial.linear.x;
+	    rob_point.linear.y = 3 *dead_zone(tran_y) + initial.linear.y;
 	    rob_point.linear.z = 3.5 *dead_zone(tran_z) + initial.linear.z + .02;
 	    rob_point.angular.x = initial.angular.x;
 	    rob_point.angular.y = initial.angular.y;

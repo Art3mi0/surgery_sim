@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/opt/ros/noetic/include/**",
+        "/home/temo/catkin_ws/devel/include/**",
+        "/home/temo/catkin_ws/src/cv_camera/include/**",
+        "/home/temo/catkin_ws/src/Universal_Robots_ROS_Driver/ur_calibration/include/**",
+        "/home/temo/catkin_ws/src/universal_robot/ur_kinematics/include/**",
+        "/home/temo/catkin_ws/src/Universal_Robots_ROS_Driver/ur_robot_driver/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
