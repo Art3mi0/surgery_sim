@@ -405,7 +405,9 @@
 			<geometry>
 				<box size=".7 1 .1"/>
 			</geometry>
-			<material name="LightGrey"/>
+			<material name="DarkGrey">
+				<color rgba="0.0 0.0 0.0.0.8"/>
+			</material>
 		</visual>
 		<collision>
 			<geometry>
@@ -428,20 +430,13 @@
    			<color rgba="0.0 0.0 0.8 1.0"/>
   		</material>
 		</visual>
-		<collision>
-			<geometry>
-				<box size="0.01 0.6 0.01"/>
-			</geometry>
-		</collision>
-		<inertial>
-      <mass value="1e-5" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
-    </inertial>
 	</link>
 	
 	<gazebo reference="dummy_link">
   <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="table_link">
+  <material>Gazebo/DarkGrey</material>
   </gazebo>
 	
 	<joint name="ground_joint" type="fixed">
