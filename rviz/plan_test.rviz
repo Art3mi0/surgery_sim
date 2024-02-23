@@ -9,7 +9,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /PointCloud21
-      Splitter Ratio: 0.5
+      Splitter Ratio: 0.820588231086731
     Tree Height: 690
   - Class: rviz/Selection
     Name: Selection
@@ -28,7 +28,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -77,15 +77,23 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        camera_link:
+        camera_link_optical_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_optical_middle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_optical_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        checkerboard_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        camera_link_optical:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         dummy_link:
           Alpha: 1
           Show Axes: false
@@ -97,6 +105,26 @@ Visualization Manager:
           Show Trail: false
           Value: true
         forearm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        intel_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        middle_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_camera_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -163,24 +191,34 @@ Visualization Manager:
           Value: false
         base_link_inertia:
           Value: false
-        camera_link:
+        camera_link_optical_left:
           Value: false
-        camera_link_optical:
+        camera_link_optical_middle:
+          Value: true
+        camera_link_optical_right:
           Value: false
+        checkerboard_link:
+          Value: true
         dummy_link:
-          Value: false
-        fk_tooltip:
           Value: false
         flange:
           Value: false
         forearm_link:
+          Value: false
+        intel_camera_link:
+          Value: false
+        left_camera_link:
+          Value: false
+        middle_camera_link:
+          Value: false
+        right_camera_link:
           Value: false
         shoulder_link:
           Value: false
         table_link:
           Value: false
         tool0:
-          Value: false
+          Value: true
         tool0_controller:
           Value: false
         upper_arm_link:
@@ -203,8 +241,21 @@ Visualization Manager:
         world:
           base_link:
             base:
-              fk_tooltip:
-                {}
+              checkerboard_link:
+                intel_camera_link:
+                  {}
+                left_camera_link:
+                  camera_link_optical_left:
+                    {}
+                middle_camera_link:
+                  camera_link_optical_middle:
+                    {}
+                right_camera_link:
+                  camera_link_optical_right:
+                    {}
+                table_link:
+                  dummy_link:
+                    {}
             base_link_inertia:
               shoulder_link:
                 upper_arm_link:
@@ -216,12 +267,6 @@ Visualization Manager:
                             tool0:
                               tool0_controller:
                                 {}
-          camera_link:
-            camera_link_optical:
-              {}
-          table_link:
-            dummy_link:
-              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -296,9 +341,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3353981375694275
+      Pitch: 0.38539808988571167
       Target Frame: <Fixed Frame>
-      Yaw: 3.3054025173187256
+      Yaw: 1.5754015445709229
     Saved: ~
 Window Geometry:
   Displays:

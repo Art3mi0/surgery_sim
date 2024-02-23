@@ -113,8 +113,8 @@ int main(int argc, char** argv){
 			tmp.z = initial.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() - .3;
+			plan_point.linear.x = transform.getOrigin().x() + .1;
+			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
@@ -122,8 +122,8 @@ int main(int argc, char** argv){
 			tmp.z = initial.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() - .3;
+			plan_point.linear.x = transform.getOrigin().x() + .1;
+			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = transform.getOrigin().z();
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
@@ -131,17 +131,8 @@ int main(int argc, char** argv){
 			tmp.z = plan_point.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() - .2;
-			plan_point.linear.z = transform.getOrigin().z();
-			plan_points.push_back(plan_point);
-			tmp.x = plan_point.linear.x;
-			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
-			dbg_cloud.points.push_back(tmp);
-			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() - .1;
+			plan_point.linear.x = transform.getOrigin().x() + .05;
+			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = transform.getOrigin().z();
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
@@ -158,8 +149,8 @@ int main(int argc, char** argv){
 			tmp.z = plan_point.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() + .1;
+			plan_point.linear.x = transform.getOrigin().x() - .05;
+			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = transform.getOrigin().z();
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
@@ -167,17 +158,8 @@ int main(int argc, char** argv){
 			tmp.z = plan_point.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() + .2;
-			plan_point.linear.z = transform.getOrigin().z();
-			plan_points.push_back(plan_point);
-			tmp.x = plan_point.linear.x;
-			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
-			dbg_cloud.points.push_back(tmp);
-			
-			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() + .3;
+			plan_point.linear.x = transform.getOrigin().x() - .1;
+			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = transform.getOrigin().z();
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;

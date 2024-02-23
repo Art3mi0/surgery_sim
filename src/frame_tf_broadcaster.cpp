@@ -59,10 +59,10 @@ int main(int argc, char* argv[]){
   		y = pose_data.pose.position.y;
   		z = pose_data.pose.position.z;
   		//transform.setOrigin(tf::Vector3(x + (ros::Time::now().toSec()), y + (ros::Time::now().toSec()), z + (ros::Time::now().toSec())));
-			transform.setOrigin( tf::Vector3(x, -z, y) ); 
+			transform.setOrigin( tf::Vector3(x, -y, -z) ); 
 		  //transform.setOrigin( tf::Vector3(0, 0, 0) );
 		  transform.setRotation( tf::Quaternion(0, 0, 0, 1) );
-		  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link_optical_left", "haptic"));
+		  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link_optical_middle", "haptic"));
 		}
 		rate.sleep();
 		ros::spinOnce();

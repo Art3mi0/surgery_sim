@@ -362,58 +362,33 @@
       <child link="${prefix}tool0"/>
     </joint>
     
-  <link name="ground_link">
+  <link name="checkerboard_link">
     <visual>
 			<geometry>
-				<box size="10 10 .01"/>
+				<box size=".085 .085 .01"/>
 			</geometry>
-			<material name="LightGrey"/>
+			<material name="Black">
+   			<color rgba="0.0 0.0 0.0 1.0"/>
+  		</material>
 		</visual>
-		<collision>
-			<geometry>
-				<box size="10 10 .01"/>
-			</geometry>
-		</collision>
 		<inertial>
       <mass value="1e-5" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
     </inertial>
-	</link> 
+	</link>  
 	
-	<link name="wall_link1">
-    <visual>
-			<geometry>
-				<box size="3 0 3"/>
-			</geometry>
-			<material name="LightGrey"/>
-		</visual>
-		<collision>
-			<geometry>
-				<box size="3 0 3"/>
-			</geometry>
-		</collision>
-		<inertial>
-      <mass value="1e-5" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
-    </inertial>
-	</link>
+	<gazebo reference="checkerboard_link">
+  <material>Gazebo/Black</material>
+  </gazebo> 
     
   <link name="table_link">
     <visual>
 			<geometry>
-				<box size=".7 1 .1"/>
+				<box size=".5 .5 .01"/>
 			</geometry>
-			<material name="DarkGrey">
-				<color rgba="0.0 0.0 0.0.0.8"/>
-			</material>
+			<material name="LightGrey"/>
 		</visual>
-		<collision>
-			<geometry>
-				<box size=".7 1 .1"/>
-			</geometry>
-		</collision>
 		<inertial>
       <mass value="1e-5" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -424,58 +399,52 @@
 	<link name="dummy_link">
     <visual>
 			<geometry>
-				<box size="0.01 0.6 0.01"/>
+				<box size="0.01 0.3 0.01"/>
 			</geometry>
 			<material name="Blue">
    			<color rgba="0.0 0.0 0.8 1.0"/>
   		</material>
 		</visual>
+		<collision>
+			<geometry>
+				<box size="0.01 0.3 0.01"/>
+			</geometry>
+		</collision>
+		<inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
 	</link>
 	
 	<gazebo reference="dummy_link">
   <material>Gazebo/Blue</material>
   </gazebo>
-  <gazebo reference="table_link">
-  <material>Gazebo/DarkGrey</material>
-  </gazebo>
 	
-	<joint name="ground_joint" type="fixed">
-      <parent link="world" />
-      <child link="ground_link" />
-      <origin xyz="0 -0.1 0" rpy="0 0 0" />
-    </joint>
-    
-  <joint name="wall_joint1" type="fixed">
-      <parent link="world" />
-      <child link="wall_link1" />
-      <origin xyz="1 0 0" rpy="0 0 1.57" />
+	<joint name="checkered_joint" type="fixed">
+      <parent link="base" />
+      <child link="checkerboard_link" />
+      <origin xyz="0.00937 -0.4906 0" rpy="0 0 -1.5708" />
     </joint>
 	
 	<joint name="table_joint" type="fixed">
-      <parent link="world" />
+      <parent link="checkerboard_link" />
       <child link="table_link" />
-      <origin xyz="-0.5 0 0" rpy="0 0 0" />
+      <origin xyz="0.3 -0.1 .01" rpy="0 0 0" />
     </joint>
    
   <joint name="dummy_joint" type="fixed">
       <parent link="table_link" />
       <child link="dummy_link" />
-      <origin xyz="0 0 .1" rpy="0 -1.57 0" />
+      <origin xyz="0 0 .05" rpy="0 -1.57 0" />
     </joint>
     
     <!-- Camera left -->
   <link name="left_camera_link">
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-    <box size=".05 .05 .05"/>
-      </geometry>
-    </collision>
-
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-    <box size=".05 .05 .05"/>
+    <box size=".02 .02 .02"/>
       </geometry>
       <material name="LightGrey"/>
     </visual>
@@ -488,10 +457,9 @@
   </link>
   
   <joint name="left_camera_joint" type="fixed">
-      <parent link="world" />
+      <parent link="checkerboard_link" />
       <child link="left_camera_link" />
-      <!-- change y of rpy to rotate x around (if -y in xyz, use + y in rpy) -->
-      <origin xyz="-1.2 0.05 .6" rpy="0 0.7 0" />
+      <origin xyz="0.372 -0.041 0.362" rpy="0.680144 1.43376 -2.9968" />
     </joint>
     
     <!-- generate an optical frame http://www.ros.org/reps/rep-0103.html#suffix-frames
@@ -511,17 +479,42 @@
   
   <!-- Camera -->
   <link name="right_camera_link">
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-    <box size=".05 .05 .05"/>
-      </geometry>
-    </collision>
-
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-    <box size=".05 .05 .05"/>
+    <box size=".02 .02 .02"/>
+      </geometry>
+      <material name="LightGrey"/>
+    </visual>
+
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+  
+  <link name="middle_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+    <box size=".02 .02 .02"/>
+      </geometry>
+      <material name="LightGrey"/>
+    </visual>
+
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+  
+  <link name="intel_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+    <box size=".02 .02 .02"/>
       </geometry>
       <material name="LightGrey"/>
     </visual>
@@ -534,10 +527,20 @@
   </link>
   
   <joint name="right_camera_joint" type="fixed">
-      <parent link="left_camera_link" />
+      <parent link="checkerboard_link" />
       <child link="right_camera_link" />
-      <!-- change y of rpy to rotate x around (if -y in xyz, use + y in rpy) -->
-      <origin xyz="0 -0.1 0" rpy="0 0 0" />
+      <origin xyz="0.358 0.032 0.374" rpy="0.58108 1.2832755 -2.7483" />
+    </joint>
+    <!-- -2.7483 -0.58108 -1.2832755 -->
+  <joint name="middle_camera_joint" type="fixed">
+      <parent link="checkerboard_link" />
+      <child link="middle_camera_link" />
+      <origin xyz="0.365 -0.0045 0.368" rpy="0.630597 1.35851775 -2.87255" />
+    </joint>
+  <joint name="intel_camera_joint" type="fixed">
+      <parent link="checkerboard_link" />
+      <child link="intel_camera_link" />
+      <origin xyz="0.316 -0.177 0.327" rpy="0.673 1.4905 -3.0835" />
     </joint>
     
     <!-- generate an optical frame http://www.ros.org/reps/rep-0103.html#suffix-frames
@@ -553,6 +556,15 @@
   </joint>
 
   <link name="camera_link_optical_right">
+  </link>
+  
+  <joint name="middle_camera_optical_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+    <parent link="middle_camera_link"/>
+    <child link="camera_link_optical_middle"/>
+  </joint>
+
+  <link name="camera_link_optical_middle">
   </link>
   
   <xacro:property name="link_name1" value="left_camera_link" />
@@ -641,6 +653,90 @@
       </plugin>
     </sensor>
   </gazebo>
+  
+  <!-- camera middle -->
+	 <gazebo reference="middle_camera_link">
+    <sensor type="camera" name="virtual_camera_middle">
+      <update_rate>30.0</update_rate>
+      <camera name="middle">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>middle</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>camera_link_optical_middle</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+  
+  <!-- camera intel -->
+  <gazebo reference="intel_camera_link">
+		<sensor name="intel_camera" type="depth">
+		  <update_rate>20</update_rate>
+		  <camera>
+		    <horizontal_fov>1.047198</horizontal_fov>
+		    <image>
+		      <width>640</width>
+		      <height>480</height>
+		      <format>R8G8B8</format>
+		    </image>
+		    <clip>
+		      <near>0.05</near>
+		      <far>3</far>
+		    </clip>
+		  </camera>
+		  <plugin name="intel_camera_link_controller" filename="libgazebo_ros_openni_kinect.so">
+		    <baseline>0.2</baseline>
+		    <alwaysOn>true</alwaysOn>
+		    <updateRate>1.0</updateRate>
+		    <cameraName>intel_ir</cameraName>
+		    <imageTopicName>/intel/color/image_raw</imageTopicName>
+		    <cameraInfoTopicName>/intel/color/camera_info</cameraInfoTopicName>
+		    <depthImageTopicName>/inteldepth/image_raw</depthImageTopicName>
+		    <depthImageInfoTopicName>/intel/depth/camera_info</depthImageInfoTopicName>
+		    <pointCloudTopicName>/intel/depth/points</pointCloudTopicName>
+		    <frameName>intel_frame</frameName>
+		    <pointCloudCutoff>0.5</pointCloudCutoff>
+		    <pointCloudCutoffMax>3.0</pointCloudCutoffMax>
+		    <distortionK1>0.00000001</distortionK1>
+		    <distortionK2>0.00000001</distortionK2>
+		    <distortionK3>0.00000001</distortionK3>
+		    <distortionT1>0.00000001</distortionT1>
+		    <distortionT2>0.00000001</distortionT2>
+		    <CxPrime>0</CxPrime>
+		    <Cx>0</Cx>
+		    <Cy>0</Cy>
+		    <focalLength>0</focalLength>
+		    <hackBaseline>0</hackBaseline>
+		  </plugin>
+		</sensor>
+	</gazebo>
     
   </xacro:macro>
 </robot>
