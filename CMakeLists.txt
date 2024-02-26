@@ -84,8 +84,8 @@ target_link_libraries(task_space_traj_reset ${catkin_LIBRARIES} ReflexxesTypeII)
 add_executable(key_test src/key_test.cpp)
 target_link_libraries(key_test ${catkin_LIBRARIES})
 
-add_executable(marker_overlay src/marker_overlay.cpp)
-target_link_libraries(marker_overlay ${catkin_LIBRARIES})
+add_executable(user_overlay src/user_overlay.cpp)
+target_link_libraries(user_overlay ${catkin_LIBRARIES})
 
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})
