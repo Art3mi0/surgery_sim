@@ -405,11 +405,6 @@
    			<color rgba="0.0 0.0 0.8 1.0"/>
   		</material>
 		</visual>
-		<collision>
-			<geometry>
-				<box size="0.01 0.3 0.01"/>
-			</geometry>
-		</collision>
 		<inertial>
       <mass value="1e-5" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -721,7 +716,7 @@
 		    <depthImageTopicName>/inteldepth/image_raw</depthImageTopicName>
 		    <depthImageInfoTopicName>/intel/depth/camera_info</depthImageInfoTopicName>
 		    <pointCloudTopicName>/intel/depth/points</pointCloudTopicName>
-		    <frameName>intel_frame</frameName>
+		    <frameName>intel_camera_link</frameName>
 		    <pointCloudCutoff>0.5</pointCloudCutoff>
 		    <pointCloudCutoffMax>3.0</pointCloudCutoffMax>
 		    <distortionK1>0.00000001</distortionK1>

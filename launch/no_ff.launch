@@ -1,0 +1,10 @@
+<launch>
+
+	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" />
+	<node pkg="surgery_sim" type="plan_listener" name="plan_node" />
+	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" />
+	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />
+	<node pkg="surgery_sim" type="listener" name="listener_node" />
+	<node pkg="surgery_sim" type="switch_node_no_ff" name="switch_node_no_ff" />
+
+</launch>
