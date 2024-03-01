@@ -91,6 +91,9 @@ target_link_libraries(key_test ${catkin_LIBRARIES})
 add_executable(user_overlay src/user_overlay.cpp)
 target_link_libraries(user_overlay ${catkin_LIBRARIES})
 
+add_executable(overlay_broadcast src/overlay_broadcast.cpp)
+target_link_libraries(overlay_broadcast ${catkin_LIBRARIES})
+
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})
 ##add_dependencies(reset_server surgery_sim_gencpp)

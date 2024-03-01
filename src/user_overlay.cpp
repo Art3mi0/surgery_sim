@@ -14,7 +14,7 @@
 
 static const std::string OPENCV_WINDOWL = "Image window left";
 static const std::string OPENCV_WINDOWR = "Image window right";
-static const int RADIUS = 10;
+static const int RADIUS = 15;
 cv_bridge::CvImagePtr cv_ptr_l;
 cv_bridge::CvImagePtr cv_ptr_r;
 image_geometry::PinholeCameraModel cam_model_l;
@@ -40,16 +40,16 @@ const sensor_msgs::CameraInfoConstPtr& info_msg_l)
 
   cam_model_l.fromCameraInfo(info_msg_l);
 
-  // Draw an example circle on the video stream
+  // Draw text on the video stream
     cv::putText(cv_ptr_l->image, 
     text,
-    cv::Point(cv_ptr_l->image.cols/2, 50), 
+    cv::Point(cv_ptr_l->image.cols/2, 100), 
     cv::FONT_HERSHEY_DUPLEX,
-    1.0, 
+    3.0, 
     CV_RGB(255,0,0),
     2);
 
-  // Update GUI Window
+  // Update GUI Window (Lowers performance. The display only needs the output topics)
   //cv::imshow(OPENCV_WINDOWL, cv_ptr_l->image);
   //cv::waitKey(3);
 
@@ -71,16 +71,16 @@ const sensor_msgs::CameraInfoConstPtr& info_msg_r)
 
   cam_model_r.fromCameraInfo(info_msg_r);
 
-  // Draw an example circle on the video stream
+  // Draw text on the video stream
     cv::putText(cv_ptr_r->image, 
     text,
-    cv::Point(cv_ptr_r->image.cols/2, 50), 
+    cv::Point(cv_ptr_r->image.cols/2, 100), 
     cv::FONT_HERSHEY_DUPLEX,
-    1.0, 
+    3.0, 
     CV_RGB(255,0,0),
     2);
 
-  // Update GUI Window
+  // Update GUI Window (Lowers performance. The display only needs the output topics)
   //cv::imshow(OPENCV_WINDOWR, cv_ptr_r->image);
   //cv::waitKey(3);
 
@@ -98,8 +98,8 @@ int main(int argc, char** argv)
   ros::NodeHandle node;
   image_transport::ImageTransport it(node);
 
-  ros::Subscriber pcl_sub = node.subscribe("/plancloud", 1, pcl_callback);
-  // ros::Publisher pcl_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/testcloud", 1);
+  ros::Subscriber pcl_sub = node.subscribe("/test_cloud", 1, pcl_callback);
+  ros::Publisher pcl_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud", 1);
 
 // should subscribe to image_rect_color when using real cameras. Need to run image_proc for this topic
   image_transport::CameraSubscriber subL = it.subscribeCamera("/stereo/left/image_raw", 1, imageCbL);
@@ -116,7 +116,6 @@ int main(int argc, char** argv)
   while (node.ok()){
      if (pcl_received){ 
       tf::StampedTransform transform;
-      geometry_msgs::Transform transform2;
       try
       {
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
@@ -128,9 +127,12 @@ int main(int argc, char** argv)
           cv::Point2d uv_r;
           uv_l = cam_model_l.project3dToPixel(pt_cv_l);
           uv_r = cam_model_r.project3dToPixel(pt_cv_r);
+          // std::cout<<cloud_out_l.points.size()<< std::endl;
 
           cv::circle(cv_ptr_l->image, uv_l, RADIUS, CV_RGB(255,0,0), -1);
           cv::circle(cv_ptr_r->image, uv_r, RADIUS, CV_RGB(255,0,0), -1);
+
+          pcl_pub.publish(cloud_out_l);
         }
       }
       catch (tf::TransformException ex)
@@ -140,9 +142,6 @@ int main(int argc, char** argv)
       }
     }
 
-    // if (flag){
-    //   pcl_pub.publish(cloud_out);
-    // }
     if (flagL){
       pubL.publish(cv_ptr_l->toImageMsg());
     }
