@@ -124,6 +124,7 @@ int main(int argc, char* argv[]){
   ros::ServiceClient haptic_client = node.serviceClient<surgery_sim::Reset>("haptic_server");
   ros::ServiceClient frame_client = node.serviceClient<surgery_sim::Reset>("frame_server");
   ros::ServiceClient plan_client = node.serviceClient<surgery_sim::Reset>("plan_server");
+  ros::ServiceClient overlay_client = node.serviceClient<surgery_sim::Reset>("overlay_server");
   surgery_sim::Reset reset;
   
   ros::Timer timer = node.createTimer(ros::Duration(1), timer_callback, true);
@@ -180,6 +181,7 @@ int main(int argc, char* argv[]){
   			reset.request.plan_flag = true;
   			reset.request.hap_start = false;
   			reset.request.hap_flag = false;
+			overlay_client.call(reset);
   			haptic_client.call(reset);
   			frame_client.call(reset);
   			if (click_count > 0){
@@ -204,6 +206,7 @@ int main(int argc, char* argv[]){
   			reset.request.plan_start = false;
   			reset.request.hap_start = true;
   			reset.request.hap_flag = true;
+			overlay_client.call(reset);
   			traj_client.call(reset);
   			plan_client.call(reset);
   			haptic_client.call(reset);

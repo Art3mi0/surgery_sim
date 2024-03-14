@@ -59,7 +59,7 @@ int main(int argc, char** argv){
   while (node.ok()){
   	std_msgs::Header header;
 		header.stamp = ros::Time::now();
-		header.frame_id = std::string("world");
+		header.frame_id = std::string("base");
 		dbg_cloud.header = pcl_conversions::toPCL(header);
 		dbg_traj_pub.publish(dbg_cloud);
 				

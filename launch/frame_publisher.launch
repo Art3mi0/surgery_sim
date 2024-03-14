@@ -1,11 +1,19 @@
 <launch>
-	<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.00765 -0.49372 0.001 -1.5708 0.0 0.0 world checkerboard" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.00765 -0.49372 0.001 -1.5708 0.0 0.0 base checkerboard" />
 
 	<node pkg="tf2_ros" type="static_transform_publisher" name="camera1_checkerboard" args="0.415 -0.050 0.431 0.666 0.632 -0.270 -0.289 checkerboard pylon_camera1" />
 	<node pkg="tf2_ros" type="static_transform_publisher" name="camera2_checkerboard" args="0.375 0.030 0.391 0.674 0.641 -0.259 -0.260 checkerboard pylon_camera2" />
 	
-	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_link_checkerboard" args="0.321 -0.163 0.330 -0.448 -0.048 0.879 0.158 checkerboard camera_link" />
-	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_color_optical_checkerboard" args="0.318 -0.178 0.327 0.719 0.607 -0.115 -0.319 checkerboard camera_color_optical_frame" />
-	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_depth_optical_checkerboard" args="0.321 -0.163 0.331 0.718 0.608 -0.112 -0.319 checkerboard camera_depth_optical_frame" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_camera_link_checkerboard" args="0.426 0.003 0.337 -0.372 0.013 0.928 0.001 checkerboard camera_link" />
 </launch>
 
+<!-- 
+
+<node pkg="tf2_ros" type="static_transform_publisher" name="intel_depth_optical_checkerboard" args="0.320 -0.024 0.378 0.706 0.657 -0.194 -0.182 checkerboard camera_depth_optical_frame" />
+</launch>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_aligned_depth_checkerboard" args="0.313 -0.049 0.379 -0.497 0.022 0.867 0.027 checkerboard camera_aligned_depth_to_color_frame" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_color_optical_checkerboard" args="0.314 -0.044 0.380 0.707 0.656 -0.187 -0.184 checkerboard camera_color_optical_frame" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_link_optical" args="0.015 0.000 0.000 0.498 -0.500 0.499 0.502 camera_color_optical_frame camera_link" />
+
+
+-->
