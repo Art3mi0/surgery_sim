@@ -12,6 +12,7 @@ std_msgs::Int32 button_data;
 geometry_msgs::Twist plan_point;
 geometry_msgs::Twist haptic_point;
 geometry_msgs::Twist robot_point;
+geometry_msgs::Twist final_point;
 bool plan_received = false;
 bool haptic_received = false;
 bool button_received = false;
@@ -23,6 +24,13 @@ bool update_flag;
 bool white_press;
 bool grey_press;
 int click_count = 0;
+
+float x_max = 0.09;
+float x_min = -0.26;
+float y_max = -0.58;
+float y_min = -0.8;
+float z_max = 0.38;
+float z_min = 0.035;
 
 void button_callback(const std_msgs::Int32 &  _data){
 	// read the button input
@@ -53,6 +61,36 @@ geometry_msgs::PoseStamped phantom_pos;
 void get_phantom_pos(const geometry_msgs::PoseStamped & _data){
 	phantom_pos = _data;
 	h_pose_received = true;
+}
+
+void check_box(const geometry_msgs::Twist point){
+	if ((point.linear.x <= x_max) && (point.linear.x >= x_min)) {
+		final_point.linear.x = point.linear.x;
+	} else if (point.linear.x < x_min){
+		final_point.linear.x = x_min;
+	} else{
+		final_point.linear.x = x_max;
+	}
+
+	if ((point.linear.y <= y_max) && (point.linear.y >= y_min)) {
+		final_point.linear.y = point.linear.y;
+	} else if (point.linear.y < y_min){
+		final_point.linear.y = y_min;
+	} else{
+		final_point.linear.y = y_max;
+	}
+
+	if ((point.linear.z <= z_max) && (point.linear.z >= z_min)) {
+		final_point.linear.z = point.linear.z;
+	} else if (point.linear.z < z_min){
+		final_point.linear.z = z_min;
+	} else{
+		final_point.linear.z = z_max;
+	}
+
+	final_point.angular.x = point.angular.x;
+	final_point.angular.y = point.angular.y;
+	final_point.angular.z = point.angular.z;
 }
 
 // desired values of x, y, z for centering the haptic device
@@ -221,9 +259,11 @@ int main(int argc, char* argv[]){
   			
   		if (timer_white && plan_received){
   			//update_force(rx, ry, rz); /*
-  			pub_robot.publish(plan_point);
+			check_box(plan_point);
+  			pub_robot.publish(final_point);
 			} else if (timer_grey && haptic_received){
-				pub_robot.publish(haptic_point);
+				check_box(haptic_point);
+				pub_robot.publish(final_point);
 			}
 		}
 		//if (h_pose_received && robot_received){

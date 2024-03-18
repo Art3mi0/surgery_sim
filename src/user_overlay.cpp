@@ -19,7 +19,7 @@ int height;
 int width;
 std::string text = "Current Mode: Standby";
 cv::Rect crop(720, 500, 1270, 780);
-std::string mode = "full"; // options are: "resize"; "crop"; "full"
+std::string mode = "resize"; // options are: "resize"; "crop"; "full"
 
 
 cv_bridge::CvImagePtr cv_ptr_l;

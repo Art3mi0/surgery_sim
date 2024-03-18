@@ -40,7 +40,7 @@ bool flag(surgery_sim::Reset::Request  &req,
   	for (int i = 0; i < plan_points.size() - 1; i ++) {
   		if (pos_found){
   			new_plan_points.push_back(plan_points[i + 1]);
-  		}else if ((robot_initial.linear.y >= plan_points[i].linear.y) && (robot_initial.linear.y <= plan_points[i + 1].linear.y)){
+  		}else if ((robot_initial.linear.y <= plan_points[i].linear.y) && (robot_initial.linear.y >= plan_points[i + 1].linear.y)){
   			new_plan_points.push_back(robot_initial);
   			new_plan_points.push_back(plan_points[i + 1]);
   			pos_found = true;
