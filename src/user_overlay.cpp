@@ -167,13 +167,16 @@ int main(int argc, char** argv)
         CV_RGB(255,0,0),
         2);
 
-        cv::putText(resized_down_r, 
-        text,
-        cv::Point((resized_down_r.cols/2) - 280, 50), 
-        cv::FONT_HERSHEY_DUPLEX,
-        text_size * 0.5, 
-        CV_RGB(255,0,0),
-        2);
+        // Don't need both overlays to display text. Result is blurry when at the edge. Would need to
+        // find corresponding pixel locations between the views and make the text origin there for 
+        // each view to create 3d text I believe.
+        // cv::putText(resized_down_r, 
+        // text,
+        // cv::Point((resized_down_r.cols/2) - 280, 50), 
+        // cv::FONT_HERSHEY_DUPLEX,
+        // text_size * 0.5, 
+        // CV_RGB(255,0,0),
+        // 2);
 
         l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_l).toImageMsg();
         r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_r).toImageMsg();
@@ -190,13 +193,13 @@ int main(int argc, char** argv)
         CV_RGB(255,0,0),
         2);
 
-        cv::putText(cv_ptr_r->image, 
-        text,
-        cv::Point((crop.width/2 + 280), crop.height - 220), 
-        cv::FONT_HERSHEY_DUPLEX,
-        text_size * 0.75, 
-        CV_RGB(255,0,0),
-        2);
+        // cv::putText(cv_ptr_r->image, 
+        // text,
+        // cv::Point((crop.width/2 + 280), crop.height - 220), 
+        // cv::FONT_HERSHEY_DUPLEX,
+        // text_size * 0.75, 
+        // CV_RGB(255,0,0),
+        // 2);
 
         l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
         r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
@@ -213,13 +216,13 @@ int main(int argc, char** argv)
         CV_RGB(255,0,0),
         3);
 
-        cv::putText(cv_ptr_r->image, 
-        text,
-        cv::Point((width/2) - 800, 130), 
-        cv::FONT_HERSHEY_DUPLEX,
-        text_size * 1.5, 
-        CV_RGB(255,0,0),
-        3);
+        // cv::putText(cv_ptr_r->image, 
+        // text,
+        // cv::Point((width/2) - 800, 130), 
+        // cv::FONT_HERSHEY_DUPLEX,
+        // text_size * 1.5, 
+        // CV_RGB(255,0,0),
+        // 3);
 
         pubL.publish(cv_ptr_l->toImageMsg());
         pubR.publish(cv_ptr_r->toImageMsg());
