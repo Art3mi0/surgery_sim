@@ -1,7 +1,6 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
-//#include <omni_msgs/OmniButtonEvent.h>
 #include <surgery_sim/Plan.h>
 #include <surgery_sim/Reset.h>
 #include <cstdlib>
@@ -26,10 +25,10 @@ bool grey_press;
 int click_count = 0;
 
 float x_max = 0.09;
-float x_min = -0.26;
-float y_max = -0.58;
-float y_min = -0.8;
-float z_max = 0.38;
+float x_min = -0.15;
+float y_max = -0.38;
+float y_min = -0.7;
+float z_max = 0.35;
 float z_min = 0.035;
 
 void button_callback(const std_msgs::Int32 &  _data){
@@ -148,9 +147,9 @@ void timer_callback(const ros::TimerEvent& event){
 }
 
 void update_force(double x, double y, double z){
-	x_d = y/3;
-	y_d = -x;
-	z_d = z/3;
+	x_d = y/2;
+	y_d = -x/2;
+	z_d = z/2;
 }
 
 int main(int argc, char* argv[]){
@@ -200,7 +199,7 @@ int main(int argc, char* argv[]){
 				robot_initial = robot_point;
 				robot_flag = false;
 			}else{
-				rx = (robot_point.linear.x - robot_initial.linear.x)*.5;
+				rx = (robot_point.linear.x - robot_initial.linear.x);
 				ry = (robot_point.linear.y - robot_initial.linear.y);
 				rz = (robot_point.linear.z - robot_initial.linear.z);
 			}
@@ -219,7 +218,7 @@ int main(int argc, char* argv[]){
   			reset.request.plan_flag = true;
   			reset.request.hap_start = false;
   			reset.request.hap_flag = false;
-			overlay_client.call(reset);
+				overlay_client.call(reset);
   			haptic_client.call(reset);
   			frame_client.call(reset);
   			if (click_count > 0){
@@ -244,7 +243,7 @@ int main(int argc, char* argv[]){
   			reset.request.plan_start = false;
   			reset.request.hap_start = true;
   			reset.request.hap_flag = true;
-			overlay_client.call(reset);
+				overlay_client.call(reset);
   			traj_client.call(reset);
   			plan_client.call(reset);
   			haptic_client.call(reset);
@@ -258,21 +257,24 @@ int main(int argc, char* argv[]){
   		}
   			
   		if (timer_white && plan_received){
-  			//update_force(rx, ry, rz); /*
-			check_box(plan_point);
-  			pub_robot.publish(final_point);
+				update_force(rx, ry, rz);
+				check_box(plan_point);
+				pub_robot.publish(final_point);
 			} else if (timer_grey && haptic_received){
 				check_box(haptic_point);
 				pub_robot.publish(final_point);
 			}
 		}
-		//if (h_pose_received && robot_received){
+		if (h_pose_received && robot_received){
 			update_force(rx, ry, rz);
 			calc_center_force();
-			force_pub.publish(centering_force);
+			if (!white_flag){
+				force_pub.publish(centering_force);
+			}
 			/*
 			ROS_INFO("Differences: x:%f y:%f z:%f", phantom_pos.pose.position.x - ry/3, phantom_pos.pose.position.y - -rx, phantom_pos.pose.position.z - rz/3);
 		}*/
+		}
 		
 		rate.sleep();
 		ros::spinOnce();

@@ -57,7 +57,7 @@
 //*************************************************************************
 // defines
 
-#define CYCLE_TIME_IN_SECONDS                   0.1
+#define CYCLE_TIME_IN_SECONDS                   0.03
 #define NUMBER_OF_DOFS                          6
 
 
@@ -314,8 +314,9 @@ int main(int argc, char * argv[])
     			}
     	}
 			*/
-			// && (ctr < number_of_points)
-			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) || reset_traj){
+			// && (ctr < number_of_points) Stops after all points reached
+			// || (reset_traj) Resets after last point reached
+			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) && (ctr < number_of_points)){
 				//setting the target velcoity and positions
 				//reset_traj = false;
 				int next_wp;/*

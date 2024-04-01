@@ -58,12 +58,6 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 
-add_executable(haptic_visualize src/haptic_visualize.cpp)
-target_link_libraries(haptic_visualize ${catkin_LIBRARIES})
-
-add_executable(haptic_plan src/haptic_plan.cpp)
-target_link_libraries(haptic_plan ${catkin_LIBRARIES})
-
 add_executable(frame_tf_broadcaster src/frame_tf_broadcaster.cpp)
 target_link_libraries(frame_tf_broadcaster ${catkin_LIBRARIES})
 
@@ -72,9 +66,6 @@ target_link_libraries(listener ${catkin_LIBRARIES})
 
 add_executable(plan_listener src/plan_listener.cpp)
 target_link_libraries(plan_listener ${catkin_LIBRARIES})
-
-add_executable(plan_tf_broadcaster src/plan_tf_broadcaster.cpp)
-target_link_libraries(plan_tf_broadcaster ${catkin_LIBRARIES})
 
 add_executable(switch_node src/switch_node.cpp)
 target_link_libraries(switch_node ${catkin_LIBRARIES})

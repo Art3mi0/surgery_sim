@@ -31,6 +31,7 @@ bool flagL = false;
 bool flagR = false;
 bool pcl_received = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
+pcl::PointCloud<pcl::PointXYZ> test_cloud;
 
 bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
@@ -93,7 +94,9 @@ int main(int argc, char** argv)
 
   ros::ServiceServer service = node.advertiseService("overlay_server", flag);
 
-  ros::Subscriber pcl_sub = node.subscribe("/test_cloud", 1, pcl_callback);
+  ros::Subscriber pcl_sub = node.subscribe("/plancloud", 1, pcl_callback); // cloud from plan node
+  //ros::Subscriber pcl_sub = node.subscribe("/test_cloud", 1, pcl_callback); // cloud from click boradcast node
+
   ros::Publisher pcl_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud", 1);
 
 // should subscribe to image_rect_color when using real cameras. Need to run image_proc for this topic
@@ -119,6 +122,10 @@ int main(int argc, char** argv)
       tf::StampedTransform transform;
       try
       {
+        // listener.lookupTransform("base", "fk_tooltip",  
+				// 				ros::Time(0), transform);
+        // test_cloud.points.clear();
+
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
         pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
         got_transform = true;

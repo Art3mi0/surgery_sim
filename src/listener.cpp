@@ -4,16 +4,17 @@
 #include <geometry_msgs/PointStamped.h>
 #include <surgery_sim/Reset.h>
 
-geometry_msgs::Twist robot_initial;
+geometry_msgs::Twist robot_current;
 bool robot_received = false;
 bool robot_record = false;
 bool frame_record = false;
 bool publish = false;
 bool retract = false;
+float retract_z = 0.0; // 0ld - .02
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
-	robot_initial = _data;
+	robot_current = _data;
 	robot_received = true;
 }
 
@@ -27,18 +28,7 @@ bool flag(surgery_sim::Reset::Request  &req,
   	ROS_INFO("Retracting Arm..");
   } else{
   	publish = false;
-  } /*
-	if (req.flag){
-		reset_traj = false;
-		control_mode = 1;
-		ROS_INFO("request: do not reset");
-	} else{
-		control_mode = 0;
-		reset_traj = true;
-		ROS_INFO("request: reset");
-	} */
-  //ROS_INFO("request: flag=%s", (bool)req.flag ? "true" : "false");
-  //ROS_INFO("sending back response: [%s]", (bool)res.out ? "true" : "false");
+  } 
   return true;
 }
 
@@ -73,6 +63,7 @@ int main(int argc, char** argv){
   ros::Publisher pub_robot = node.advertise<geometry_msgs::Twist>("/refhap", 1);
   // Publisher for the RViz visual
   ros::Publisher pub_point= node.advertise<geometry_msgs::PointStamped>( "/haptic_point", 1 );
+	ros::Publisher pub_test_hap = node.advertise<geometry_msgs::Twist>("/hap_test", 1);
 
   tf::TransformListener listener;
   
@@ -115,7 +106,7 @@ int main(int argc, char** argv){
 		
 		// Records the initial position of the robot once
 		if (robot_received && robot_record){
-			initial = robot_initial;
+			initial = robot_current;
 			robot_record = false;
 			publish = true;
 			//std::cout << initial;
@@ -127,29 +118,38 @@ int main(int argc, char** argv){
 		if (robot_received && publish && !frame_record){		
 			// If the point is not re-created each loop, there will be a bug where the robot keeps moving when you do not want it to
 			geometry_msgs::Twist rob_point;
+			geometry_msgs::Twist hap_point;
 			tran_x = transform.getOrigin().x() - x;
 			tran_y = transform.getOrigin().y() - y;
 			tran_z = transform.getOrigin().z() - z;
+
+			hap_point.linear.x = tran_x;
+			hap_point.linear.y = tran_y;
+			hap_point.linear.z = tran_z;
 			
 			// The leading int is the scalar. The larger the number, the more the robot will move
-			// The initial pen position is saved and subtracted from the current, so new movements of the pen will move the robot accordingly by being added to the robot's starting position which is saved. This is to allow the user to choose a comfortable starting position for the pen in the real world	
-	    rob_point.linear.x = 3 *dead_zone(tran_x) + initial.linear.x;
-	    rob_point.linear.y = 3 *dead_zone(tran_y) + initial.linear.y;
-	    rob_point.linear.z = 3.5 *dead_zone(tran_z) + initial.linear.z + .02;
-	    rob_point.angular.x = initial.angular.x;
-	    rob_point.angular.y = initial.angular.y;
-	    rob_point.angular.z = initial.angular.z;
+			// The initial pen position is saved and subtracted from the current, so new movements of 
+			// the pen will move the robot accordingly by being added to the robot's starting position 
+			// which is saved. This is to allow the user to choose a comfortable starting position for 
+			// the pen in the real world	
+			rob_point.linear.x = 2 *dead_zone(tran_x) + initial.linear.x;
+			rob_point.linear.y = 2 *dead_zone(tran_y) + initial.linear.y;
+			rob_point.linear.z = 2 *dead_zone(tran_z) + initial.linear.z + retract_z;
+			rob_point.angular.x = initial.angular.x;
+			rob_point.angular.y = initial.angular.y;
+			rob_point.angular.z = initial.angular.z;
+			pub_test_hap.publish(hap_point);
 	    
-	    if (retract){
-	    	retract_z = (.5* ((initial.linear.z + .02) - robot_initial.linear.z)) + robot_initial.linear.z;
-	    	rob_point.linear.z = retract_z;
-	    	if (robot_initial.linear.z >= initial.linear.z + .019){
-	    		retract = false;
-	    		ROS_INFO("Retracting Complete");
-	    	}
-	    }
-	    
-	    pub_robot.publish(rob_point);
+			// if (retract){
+			// 	retract_z = (.5* ((initial.linear.z + retract_z) - robot_current.linear.z)) + robot_current.linear.z;
+			// 	rob_point.linear.z = retract_z;
+			// 	if (robot_current.linear.z >= initial.linear.z + (retract_z - .01)){
+			// 		retract = false;
+			// 		ROS_INFO("Retracting Complete");
+			// 	}
+			// }
+			
+			pub_robot.publish(rob_point);
 	  
 		}
 
