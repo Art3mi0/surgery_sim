@@ -9,14 +9,17 @@
 #include <surgery_sim/Reset.h>
 
 
-/*
-	TODO remove adding a frame to the plan to work again. The commented out code shuold all be fine, what isnt was for demonstration. Try to go back and not make an extra frame, or see if you can make a transform without broadcasting. To get the pointcloud to work, I think change the frame id, or do some frame transformation like in his code on git.
-	
-	What I had originally was fine, except creating a broadcaster and using the wrong frame for the header of the debug pcl. I also didn't double check the plan (was modifying x when I should have y).
-*/
-
+geometry_msgs::Twist robot_current;
 pcl::PointCloud<pcl::PointXYZI> dbg_cloud;
+float offset = .002;
+bool robot_received = false;
 
+
+void robot_callback(const geometry_msgs::Twist &  _data){
+	// Read the pose of the robot
+	robot_current = _data;
+	robot_received = true;
+}
 
 void point_callback(const geometry_msgs::PointStamped & _data){
 	pcl::PointXYZI tmp;
@@ -26,37 +29,58 @@ void point_callback(const geometry_msgs::PointStamped & _data){
 	dbg_cloud.push_back(tmp);
 }
 
+bool sgn(float num1, float num2){
+	if ((num1 > 0) && (num2 > 0)){
+		return true;
+	} else if ((num1 < 0) && (num2 < 0)){
+		return true;
+	}
+	return false;
+}
+
+bool calc_diff(float num1, float num2){
+	if (sgn){
+		if (std::abs(num1 - num2) < offset){
+			return true;
+		}
+		return false;
+	}
+	if (std::abs(num1 - (-1 * num2)) < offset){
+			return true;
+		}
+		return false;
+}
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "overlay_broadcast");
 
   ros::NodeHandle node;
   
 	ros::Subscriber point_sub = node.subscribe("/clicked_point", 1, point_callback);
+	ros::Subscriber robot_sub = node.subscribe("/ur5e/toolpose", 1, robot_callback);
   ros::Publisher dbg_traj_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("test_cloud",1);
 
-  tf::TransformListener listener;
-  
-  // Initiating variables
-  // pcl::PointXYZI tmp;
-  // tmp.x = 0.08436;
-	// tmp.y = -0.6039;
-	// tmp.z = 0.07457;
-	// dbg_cloud.points.push_back(tmp);
-
-	// tmp.x = 0.0389245;
-	// tmp.y = -0.5374;
-	// tmp.z = 0.0291;
-	// dbg_cloud.points.push_back(tmp);
-
-	// tmp.x = 0.0215;
-	// tmp.y = -0.61486;
-	// tmp.z = 0.0154;
-	// dbg_cloud.points.push_back(tmp);
+	float rob_x;
+	float rob_y;
+	float rob_z;
 
   int loop_freq = 10;
   ros::Rate loop_rate(loop_freq);
 
   while (node.ok()){
+		if (robot_received){
+		rob_x = robot_current.linear.x;
+		rob_y = robot_current.linear.y;
+		rob_z = robot_current.linear.z;
+		for (int i = 0; i < dbg_cloud.size(); i++){
+			if ((calc_diff(rob_x, dbg_cloud[i].x)) && 
+			(calc_diff(rob_y, dbg_cloud[i].y)) && 
+			(calc_diff(rob_z, dbg_cloud[i].z))){
+				dbg_cloud.erase(dbg_cloud.begin() + i);				
+			}
+		}
+	}
+
   	std_msgs::Header header;
 		header.stamp = ros::Time::now();
 		header.frame_id = std::string("base");

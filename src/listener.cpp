@@ -132,9 +132,9 @@ int main(int argc, char** argv){
 			// the pen will move the robot accordingly by being added to the robot's starting position 
 			// which is saved. This is to allow the user to choose a comfortable starting position for 
 			// the pen in the real world	
-			rob_point.linear.x = 2 *dead_zone(tran_x) + initial.linear.x;
-			rob_point.linear.y = 2 *dead_zone(tran_y) + initial.linear.y;
-			rob_point.linear.z = 2 *dead_zone(tran_z) + initial.linear.z + retract_z;
+			rob_point.linear.x = .5 *dead_zone(tran_x) + initial.linear.x;
+			rob_point.linear.y = .5 *dead_zone(tran_y) + initial.linear.y;
+			rob_point.linear.z = .5 *dead_zone(tran_z) + initial.linear.z + retract_z;
 			rob_point.angular.x = initial.angular.x;
 			rob_point.angular.y = initial.angular.y;
 			rob_point.angular.z = initial.angular.z;

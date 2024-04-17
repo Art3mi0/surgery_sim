@@ -84,6 +84,7 @@ bool use_rob_pos = false;
 bool init_again = false;
 int init_ctr = 0;
 
+bool test_flag = true;
 
 geometry_msgs::Twist rob_pos;
 int control_mode = 1;
@@ -103,12 +104,12 @@ void get_plan(const surgery_sim::Plan & _data){
 
 
 void initialize_plan(RMLPositionInputParameters  *_IP){
-		_IP->CurrentPositionVector->VecData      [0] =    plan.points[0].linear.x; //x
-		_IP->CurrentPositionVector->VecData      [1] =    plan.points[0].linear.y; // y
-		_IP->CurrentPositionVector->VecData      [2] =    plan.points[0].linear.z; // z
-		_IP->CurrentPositionVector->VecData      [3] =    plan.points[0].angular.x; // roll
-		_IP->CurrentPositionVector->VecData      [4] =    plan.points[0].angular.y; // pitch
-		_IP->CurrentPositionVector->VecData      [5] =    plan.points[0].angular.z; // yaw
+		_IP->CurrentPositionVector->VecData      [0] =    rob_pos.linear.x; //x
+		_IP->CurrentPositionVector->VecData      [1] =    rob_pos.linear.y; // y
+		_IP->CurrentPositionVector->VecData      [2] =    rob_pos.linear.z; // z
+		_IP->CurrentPositionVector->VecData      [3] =    rob_pos.angular.x; // roll
+		_IP->CurrentPositionVector->VecData      [4] =    rob_pos.angular.y; // pitch
+		_IP->CurrentPositionVector->VecData      [5] =    rob_pos.angular.z; // yaw
 
 		_IP->CurrentVelocityVector->VecData      [0] =    0.0;
 		_IP->CurrentVelocityVector->VecData      [1] =    0.0;
@@ -215,7 +216,7 @@ int main(int argc, char * argv[])
     ros::Publisher reflexxes_pub = nh_.advertise<geometry_msgs::Twist>("/refplan",1);
 
     ros::Subscriber plan_sub = nh_.subscribe("/plan",1,get_plan);
-    ros::Subscriber pos_sub = nh_.subscribe("/ur5e/tool_pose" ,1, get_pos);
+    ros::Subscriber pos_sub = nh_.subscribe("/ur5e/toolpose" ,1, get_pos);
     
 
     geometry_msgs::Twist ref; // for publishing the reference traj
@@ -279,6 +280,10 @@ int main(int argc, char * argv[])
     	while (!start){
 				loop_rate.sleep();
 				ros::spinOnce();
+			}
+			if (test_flag){
+				//initialize_plan(IP);
+				test_flag = false;
 			}
 			if (init_again){
 				initialize_plan(IP);

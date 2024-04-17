@@ -7,13 +7,14 @@
 #include <pcl_ros/point_cloud.h>
 #include<sensor_msgs/PointCloud2.h>
 #include <surgery_sim/Reset.h>
+#include <cmath>
 
 
 /*
 
 */
 
-geometry_msgs::Twist robot_initial;
+geometry_msgs::Twist robot_current;
 surgery_sim::Reset reset;
 surgery_sim::Plan plan;
 std::vector<geometry_msgs::Twist> plan_points;
@@ -22,33 +23,69 @@ pcl::PointCloud<pcl::PointXYZI> robot_cloud;
 bool robot_received = false;
 bool plan_created = false;
 bool call_traj = false;
+bool dbg_flag = false;
 
 bool custom_plan = true;
+bool hap_flag;
+float offset = .005;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
-	robot_initial = _data;
+	robot_current = _data;
 	robot_received = true;
+}
+
+bool sgn(float num1, float num2){
+	if ((num1 > 0) && (num2 > 0)){
+		return true;
+	} else if ((num1 < 0) && (num2 < 0)){
+		return true;
+	}
+	return false;
+}
+
+bool calc_diff(float num1, float num2){
+	if (sgn){
+		if (std::abs(num1 - num2) < offset){
+			return true;
+		}
+		return false;
+	}
+	if (std::abs(num1 - (-1 * num2)) < offset){
+			return true;
+		}
+		return false;
+}
+
+void update_dbg(){
+	pcl::PointCloud<pcl::PointXYZI> fresh_dbg_cloud;
+	dbg_cloud.points.clear();
+	fresh_dbg_cloud.points.clear();
+	pcl::PointXYZI tmp;
+  std::cout << "Back TO Autonomous" << std::endl;
+	for (int i = 0; i < plan_points.size(); i ++){
+		tmp.x = plan_points[i].linear.x;
+		tmp.y = plan_points[i].linear.y;
+		tmp.z = plan_points[i].linear.z;
+		fresh_dbg_cloud.points.push_back(tmp);
+		// std::cout << "Updated point "<<i+1 << std::endl;
+		// std::cout << "Current size "<<fresh_dbg_cloud.size() << std::endl;
+	}
+	dbg_cloud = fresh_dbg_cloud;
 }
 
 bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
-  bool pos_found = false;
   std::vector<geometry_msgs::Twist> new_plan_points;
+
+	if (req.hap_flag){
+		hap_flag = true;
+	} else{
+		hap_flag = false;
+		dbg_flag = true;
+	}
+
   if (req.plan_flag){
-  plan_created = false;
-  //ROS_INFO("the y of first point: %f", plan_points[0].linear.y);
-  	for (int i = 0; i < plan_points.size() - 1; i ++) {
-  		if (pos_found){
-  			new_plan_points.push_back(plan_points[i + 1]);
-  		}else if ((robot_initial.linear.y <= plan_points[i].linear.y) && (robot_initial.linear.y >= plan_points[i + 1].linear.y)){
-  			new_plan_points.push_back(robot_initial);
-  			new_plan_points.push_back(plan_points[i + 1]);
-  			pos_found = true;
-  		}
-  	}
-  plan.points = new_plan_points;
-  plan_created = true;
   reset.request.plan_start = true;
   reset.request.plan_flag = true;
   call_traj = true;
@@ -82,6 +119,9 @@ int main(int argc, char** argv){
   geometry_msgs::Twist initial;
   
   geometry_msgs::Twist plan_point;
+	float rob_x;
+	float rob_y;
+	float rob_z;
 
 	pcl::PointXYZI tmp_rob;
 
@@ -104,7 +144,7 @@ int main(int argc, char** argv){
 		
 	// Records the initial position of the robot once
 	if (robot_received && !robot_recorded){
-		initial = robot_initial;
+		initial = robot_current;
 		robot_recorded = true;
 		plan_points.push_back(initial);
 		
@@ -115,9 +155,9 @@ int main(int argc, char** argv){
 
 	if (robot_received){
 		robot_cloud.points.clear();
-		tmp_rob.x = robot_initial.linear.x;
-		tmp_rob.y = robot_initial.linear.y;
-		tmp_rob.z = robot_initial.linear.z;
+		tmp_rob.x = robot_current.linear.x;
+		tmp_rob.y = robot_current.linear.y;
+		tmp_rob.z = robot_current.linear.z;
 		robot_cloud.push_back(tmp_rob);
 
 		std_msgs::Header header;
@@ -229,6 +269,26 @@ int main(int argc, char** argv){
 		}
 	}
 	
+	if (hap_flag){
+		rob_x = robot_current.linear.x;
+		rob_y = robot_current.linear.y;
+		rob_z = robot_current.linear.z;
+		for (int i = 0; i < dbg_cloud.size(); i++){
+			if ((calc_diff(rob_x, dbg_cloud[i].x)) && 
+			(calc_diff(rob_y, dbg_cloud[i].y)) && 
+			(calc_diff(rob_z, dbg_cloud[i].z))){
+				dbg_cloud.erase(dbg_cloud.begin() + i);	
+				// std::cout << "DELETED point "<<i+1 << std::endl;
+				// std::cout << "Current size "<<dbg_cloud.size() << std::endl;			
+			}
+		}
+	}
+
+	if (dbg_flag){
+		update_dbg();
+		dbg_flag = false;
+	}
+
 	if (plan_created){
 		std_msgs::Header header;
 		header.stamp = ros::Time::now();

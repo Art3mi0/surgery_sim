@@ -13,14 +13,12 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <surgery_sim/Reset.h>
 
-static const int RADIUS = 15;
+static const int RADIUS = 7;
 int text_size = 3;
 int height;
 int width;
 std::string text = "Current Mode: Standby";
-cv::Rect crop(720, 500, 1270, 780);
-std::string mode = "resize"; // options are: "resize"; "crop"; "full"
-
+cv::Rect crop(867, 720, 1733, 1440);
 
 cv_bridge::CvImagePtr cv_ptr_l;
 cv_bridge::CvImagePtr cv_ptr_r;
@@ -90,13 +88,23 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "user_overlay");
   ros::NodeHandle node;
+  ros::NodeHandle home("~");
+	std::string source = "click";
+  std::string mode = "resize";
+	home.getParam("source", source); // options are: "click"; "plan"; "path"
+  home.getParam("mode", mode); // options are: "resize"; "crop"; "full"
   image_transport::ImageTransport it(node);
 
   ros::ServiceServer service = node.advertiseService("overlay_server", flag);
 
-  ros::Subscriber pcl_sub = node.subscribe("/plancloud", 1, pcl_callback); // cloud from plan node
-  //ros::Subscriber pcl_sub = node.subscribe("/test_cloud", 1, pcl_callback); // cloud from click boradcast node
+  std::string subscriber_topic = "/plancloud";
+  if (source == "click"){
+    subscriber_topic = "/test_cloud";
+  } else if (source == "path"){
+    subscriber_topic = "/filtered_path";
+  }
 
+  ros::Subscriber pcl_sub = node.subscribe(subscriber_topic, 1, pcl_callback); // cloud from chosen source
   ros::Publisher pcl_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud", 1);
 
 // should subscribe to image_rect_color when using real cameras. Need to run image_proc for this topic
@@ -194,7 +202,7 @@ int main(int argc, char** argv)
       } else if (mode == "crop") {
         cv::putText(cv_ptr_l->image, 
         text,
-        cv::Point((crop.width/2 + 280), crop.height - 220), 
+        cv::Point((crop.width/1.3), crop.height * .6), 
         cv::FONT_HERSHEY_DUPLEX,
         text_size * 0.75, 
         CV_RGB(255,0,0),
@@ -208,8 +216,13 @@ int main(int argc, char** argv)
         // CV_RGB(255,0,0),
         // 2);
 
-        l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
-        r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
+        cv::resize(cv_ptr_l->image(crop), resized_down_l, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
+        cv::resize(cv_ptr_r->image(crop), resized_down_r, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
+        l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_l).toImageMsg();
+        r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_r).toImageMsg();
+
+        // l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
+        // r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
 
         pubL.publish(l_img_ptr);
         pubR.publish(r_img_ptr);

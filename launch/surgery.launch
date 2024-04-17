@@ -6,5 +6,17 @@
 	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />
 	<node pkg="surgery_sim" type="listener" name="listener_node" />
 	<node pkg="surgery_sim" type="switch_node" name="switch_node" />
+	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
+	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
+		<param name="source" value="click"/>
+		<param name="mode" value="crop"/>
+	</node>
 
 </launch>
+
+<!-- 
+
+source options - "click"; "plan"; "path"
+mode options - "resize"; "crop"; "full"
+
+-->
