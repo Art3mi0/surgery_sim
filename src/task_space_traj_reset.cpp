@@ -76,22 +76,30 @@
 surgery_sim::Plan plan;
 bool plan_available = false;
 bool rob_pos_received = false;
+bool completed_point_received = false;
 bool reset_traj = false;
 bool start = false;
 int number_of_points = 0;
-int ctr = 2;
+int ctr = 1;
 bool use_rob_pos = false;
 bool init_again = false;
 int init_ctr = 0;
 
 bool test_flag = true;
+bool startup_flag = false; // If the autonomous mode is chosen first, this will prevent the the ctr from starting at 0
 
 geometry_msgs::Twist rob_pos;
+surgery_sim::Plan completed_points;
 int control_mode = 1;
 
 void get_pos(const geometry_msgs::Twist & _data){
 	rob_pos = _data;
 	rob_pos_received = true;
+}
+
+void get_completed(const surgery_sim::Plan & _data){
+	completed_points = _data;
+	completed_point_received = true;
 }
 
 void get_plan(const surgery_sim::Plan & _data){
@@ -151,12 +159,12 @@ void initialize_plan(RMLPositionInputParameters  *_IP){
 		_IP->MaxJerkVector->VecData              [5] =    0.1      ;
 
 		//setting the target velocities and positions
-		_IP->TargetPositionVector->VecData       [0] =   plan.points[1].linear.x;
-		_IP->TargetPositionVector->VecData       [1] =   plan.points[1].linear.y;
-		_IP->TargetPositionVector->VecData       [2] =   plan.points[1].linear.z;
-		_IP->TargetPositionVector->VecData       [3] =   plan.points[1].angular.x;
-		_IP->TargetPositionVector->VecData       [4] =   plan.points[1].angular.y;
-		_IP->TargetPositionVector->VecData       [5] =   plan.points[1].angular.z;
+		_IP->TargetPositionVector->VecData       [0] =   plan.points[ctr].linear.x;
+		_IP->TargetPositionVector->VecData       [1] =   plan.points[ctr].linear.y;
+		_IP->TargetPositionVector->VecData       [2] =   plan.points[ctr].linear.z;
+		_IP->TargetPositionVector->VecData       [3] =   plan.points[ctr].angular.x;
+		_IP->TargetPositionVector->VecData       [4] =   plan.points[ctr].angular.y;
+		_IP->TargetPositionVector->VecData       [5] =   plan.points[ctr].angular.z;
 
 		_IP->TargetVelocityVector->VecData       [0] =   0.0;
 		_IP->TargetVelocityVector->VecData       [1] =   0.0;
@@ -179,11 +187,14 @@ bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
   if (req.plan_start){
   	start = true;
-  	ctr = 2;
+		if (startup_flag){
+  		ctr = completed_points.points.size();
+		}
   	
-  		init_again = true;
+  	init_again = true;
 
   } else{
+		startup_flag = true;
   	start = false;
   	use_rob_pos = true;
   }
@@ -217,6 +228,7 @@ int main(int argc, char * argv[])
 
     ros::Subscriber plan_sub = nh_.subscribe("/plan",1,get_plan);
     ros::Subscriber pos_sub = nh_.subscribe("/ur5e/toolpose" ,1, get_pos);
+		ros::Subscriber completed_sub = nh_.subscribe("/completed_points" ,1, get_completed);
     
 
     geometry_msgs::Twist ref; // for publishing the reference traj
@@ -321,14 +333,14 @@ int main(int argc, char * argv[])
 			*/
 			// && (ctr < number_of_points) Stops after all points reached
 			// || (reset_traj) Resets after last point reached
-			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) && (ctr < number_of_points)){
+			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) && (ctr + 1 < number_of_points)){
 				//setting the target velcoity and positions
 				//reset_traj = false;
 				int next_wp;/*
 				if(control_mode == 0)
 					next_wp = 1;
 				else */
-					next_wp = ctr % number_of_points;
+					next_wp = (ctr + 1) % number_of_points;
 				
 				std::cout << "moving to point:" << next_wp << std::endl;
 				

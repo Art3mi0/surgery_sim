@@ -3,14 +3,15 @@
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" >
 		<param name="sim" value="false"/>	
 	</node>
-	<node pkg="surgery_sim" type="plan_listener" name="plan_node" />
+	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" />
+	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
 	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" />
 	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />
 	<node pkg="surgery_sim" type="listener" name="listener_node" />
 	<node pkg="surgery_sim" type="switch_node" name="switch_node" />
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
 	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
-		<param name="source" value="click"/>
+		<param name="source" value="plan"/>
 		<param name="mode" value="crop"/>
 	</node>
 

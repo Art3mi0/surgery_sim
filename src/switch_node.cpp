@@ -92,10 +92,15 @@ void check_box(const geometry_msgs::Twist point){
 	final_point.angular.z = point.angular.z;
 }
 
+// This is for remebering the orignial position at lines 208-210 to avoid kicks
+double origin_x = -0.007;
+double origin_y = -.053;
+double origin_z = 0.07;
+
 // desired values of x, y, z for centering the haptic device
-double x_d = -0.007;
-double y_d = -.053;
-double z_d = 0.07;
+double x_d = origin_x;
+double y_d = origin_y;
+double z_d = origin_z;
 
 // ry = hx divide r by 3 rz = hz r/3 -rx=hy
 
@@ -114,6 +119,7 @@ double e_x_prev = 0.0, e_y_prev = 0.0, e_z_prev = 0.0;
 // current and previous centering forces for the haptic device
 omni_msgs::OmniFeedback centering_force;
 omni_msgs::OmniFeedback centering_force_prev;
+omni_msgs::OmniFeedback centering_force_reset;
 
 //PD tracker for the position of the haptic device
 void calc_center_force(void){
@@ -122,8 +128,8 @@ void calc_center_force(void){
   e_x = x_d - phantom_pos.pose.position.x; 
 	e_y = y_d - phantom_pos.pose.position.y; 
 	e_z = z_d - phantom_pos.pose.position.z; 
-        //calculate the derivatives of the errors
-        de_x = e_x - e_x_prev;
+	//calculate the derivatives of the errors
+	de_x = e_x - e_x_prev;
 	de_y = e_y - e_y_prev;
 	de_z = e_z - e_z_prev;
         //low pass filter for reducing the noise and jerks in the forces
@@ -147,9 +153,9 @@ void timer_callback(const ros::TimerEvent& event){
 }
 
 void update_force(double x, double y, double z){
-	x_d = y/2;
-	y_d = -x/2;
-	z_d = z/2;
+	x_d = x;
+	y_d = y;
+	z_d = z;
 }
 
 int main(int argc, char* argv[]){
@@ -199,9 +205,9 @@ int main(int argc, char* argv[]){
 				robot_initial = robot_point;
 				robot_flag = false;
 			}else{
-				rx = (robot_point.linear.x - robot_initial.linear.x);
-				ry = (robot_point.linear.y - robot_initial.linear.y);
-				rz = (robot_point.linear.z - robot_initial.linear.z);
+				rx = (robot_point.linear.x - robot_initial.linear.x) + origin_x;
+				ry = (robot_point.linear.y - robot_initial.linear.y) + origin_y;
+				rz = (robot_point.linear.z - robot_initial.linear.z) + origin_z;
 			}
   	}
   	
@@ -257,7 +263,6 @@ int main(int argc, char* argv[]){
   		}
   			
   		if (timer_white && plan_received){
-				update_force(rx, ry, rz);
 				check_box(plan_point);
 				pub_robot.publish(final_point);
 			} else if (timer_grey && haptic_received){
@@ -270,6 +275,11 @@ int main(int argc, char* argv[]){
 			calc_center_force();
 			if (!white_flag){
 				force_pub.publish(centering_force);
+			} else{
+				centering_force_prev = centering_force_reset;
+				e_x_prev = 0.0;
+				e_y_prev = 0.0;
+				e_z_prev = 0.0;
 			}
 			/*
 			ROS_INFO("Differences: x:%f y:%f z:%f", phantom_pos.pose.position.x - ry/3, phantom_pos.pose.position.y - -rx, phantom_pos.pose.position.z - rz/3);

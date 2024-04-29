@@ -67,6 +67,9 @@ target_link_libraries(listener ${catkin_LIBRARIES})
 add_executable(plan_listener src/plan_listener.cpp)
 target_link_libraries(plan_listener ${catkin_LIBRARIES})
 
+add_executable(point_counter src/point_counter.cpp)
+target_link_libraries(point_counter ${catkin_LIBRARIES})
+
 add_executable(switch_node src/switch_node.cpp)
 target_link_libraries(switch_node ${catkin_LIBRARIES})
 
@@ -78,6 +81,9 @@ target_link_libraries(task_space_traj_reset ${catkin_LIBRARIES} ReflexxesTypeII)
 
 add_executable(key_test src/key_test.cpp)
 target_link_libraries(key_test ${catkin_LIBRARIES})
+
+add_executable(pedal_controller src/pedal_controller.cpp)
+target_link_libraries(pedal_controller ${catkin_LIBRARIES})
 
 add_executable(user_overlay src/user_overlay.cpp)
 target_link_libraries(user_overlay ${catkin_LIBRARIES})

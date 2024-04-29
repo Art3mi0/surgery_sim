@@ -89,8 +89,8 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "user_overlay");
   ros::NodeHandle node;
   ros::NodeHandle home("~");
-	std::string source = "click";
-  std::string mode = "resize";
+	std::string source = "plan";
+  std::string mode = "crop";
 	home.getParam("source", source); // options are: "click"; "plan"; "path"
   home.getParam("mode", mode); // options are: "resize"; "crop"; "full"
   image_transport::ImageTransport it(node);
