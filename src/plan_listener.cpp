@@ -32,7 +32,7 @@ bool filter_received = false;
 bool button_received = false;
 std_msgs::Int32 button_data;
 
-std::string plan_type = "planner"; // Options: coded; clicked; planner; model
+std::string plan_type = "model"; // Options: coded; clicked; planner; model
 
 bool custom_plan = true;
 bool hap_flag;
@@ -117,6 +117,9 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "plan_listener");
 
   ros::NodeHandle node;
+	ros::NodeHandle home("~");
+	std::string plan_type = "model";
+	home.getParam("plan_type", plan_type); // options are: coded; clicked; planner; model
   
   ros::ServiceServer service = node.advertiseService("plan_server", flag);
   ros::ServiceClient traj_client = node.serviceClient<surgery_sim::Reset>("reset");

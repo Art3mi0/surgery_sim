@@ -90,7 +90,7 @@ int main(int argc, char** argv)
   ros::NodeHandle node;
   ros::NodeHandle home("~");
 	std::string source = "plan";
-  std::string mode = "crop";
+  std::string mode = "full";
 	home.getParam("source", source); // options are: "click"; "plan"; "path"
   home.getParam("mode", mode); // options are: "resize"; "crop"; "full"
   image_transport::ImageTransport it(node);

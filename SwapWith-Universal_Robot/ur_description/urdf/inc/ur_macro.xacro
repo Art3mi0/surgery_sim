@@ -419,7 +419,7 @@
 	<joint name="checkered_joint" type="fixed">
       <parent link="base" />
       <child link="checkerboard_link" />
-      <origin xyz="0.00937 -0.4906 0" rpy="0 0 -1.5708" />
+      <origin xyz="-0.06496 -0.47047 0.001" rpy="0 0 -1.5708" />
     </joint>
 	
 	<joint name="table_joint" type="fixed">
@@ -453,10 +453,13 @@
   
   <joint name="left_camera_joint" type="fixed">
       <parent link="checkerboard_link" />
-      <child link="left_camera_link" />
-      <origin xyz="0.372 -0.041 0.362" rpy="0.680144 1.43376 -2.9968" />
+      <child link="camera_link_optical_left" />
+      <origin xyz="0.447 0.019 0.440" rpy="-2.367 -0.025 1.507" />
     </joint>
     
+   <link name="camera_link_optical_left">
+  </link> 
+   
     <!-- generate an optical frame http://www.ros.org/reps/rep-0103.html#suffix-frames
       so that ros and opencv can operate on the camera frame correctly -->
   <joint name="left_camera_optical_joint" type="fixed">
@@ -464,32 +467,13 @@
         won't be aligned properly with the frame it is supposedly originating from -->
     <!-- Make sure the frame name is set to the optical one under the camera sensor 
     	  settings. The optical link is for depth camera specifically -->
-    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-    <parent link="left_camera_link"/>
-    <child link="camera_link_optical_left"/>
+    <origin xyz="0 0 0" rpy="1.57079632679 -1.57079632679 0"/>
+    <parent link="camera_link_optical_left"/>
+    <child link="left_camera_link"/>
   </joint>
-
-  <link name="camera_link_optical_left">
-  </link>
   
   <!-- Camera -->
   <link name="right_camera_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-    <box size=".02 .02 .02"/>
-      </geometry>
-      <material name="LightGrey"/>
-    </visual>
-
-    <inertial>
-      <mass value="1e-5" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
-    </inertial>
-  </link>
-  
-  <link name="middle_camera_link">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
@@ -523,15 +507,10 @@
   
   <joint name="right_camera_joint" type="fixed">
       <parent link="checkerboard_link" />
-      <child link="right_camera_link" />
-      <origin xyz="0.358 0.032 0.374" rpy="0.58108 1.2832755 -2.7483" />
+      <child link="camera_link_optical_right" />
+      <origin xyz="0.450 0.095 0.437" rpy="-2.363 0.052 1.568" />
     </joint>
     <!-- -2.7483 -0.58108 -1.2832755 -->
-  <joint name="middle_camera_joint" type="fixed">
-      <parent link="checkerboard_link" />
-      <child link="middle_camera_link" />
-      <origin xyz="0.365 -0.0045 0.368" rpy="0.630597 1.35851775 -2.87255" />
-    </joint>
   <joint name="intel_camera_joint" type="fixed">
       <parent link="checkerboard_link" />
       <child link="intel_camera_link" />
@@ -545,21 +524,12 @@
         won't be aligned properly with the frame it is supposedly originating from -->
     <!-- Make sure the frame name is set to the optical one under the camera sensor 
     	  settings. The optical link is for depth camera specifically -->
-    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-    <parent link="right_camera_link"/>
-    <child link="camera_link_optical_right"/>
+    <origin xyz="0 0 0" rpy="1.57079632679 -1.57079632679 0"/>
+    <parent link="camera_link_optical_right"/>
+    <child link="right_camera_link"/>
   </joint>
 
   <link name="camera_link_optical_right">
-  </link>
-  
-  <joint name="middle_camera_optical_joint" type="fixed">
-    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-    <parent link="middle_camera_link"/>
-    <child link="camera_link_optical_middle"/>
-  </joint>
-
-  <link name="camera_link_optical_middle">
   </link>
   
   <xacro:property name="link_name1" value="left_camera_link" />
@@ -639,47 +609,6 @@
         <imageTopicName>image_raw</imageTopicName>
         <cameraInfoTopicName>camera_info</cameraInfoTopicName>
         <frameName>camera_link_optical_right</frameName>
-        <hackBaseline>0.07</hackBaseline>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-  </gazebo>
-  
-  <!-- camera middle -->
-	 <gazebo reference="middle_camera_link">
-    <sensor type="camera" name="virtual_camera_middle">
-      <update_rate>30.0</update_rate>
-      <camera name="middle">
-        <horizontal_fov>1.3962634</horizontal_fov>
-        <image>
-          <width>800</width>
-          <height>800</height>
-          <format>R8G8B8</format>
-        </image>
-        <clip>
-          <near>0.02</near>
-          <far>300</far>
-        </clip>
-        <noise>
-          <type>gaussian</type>
-          <!-- Noise is sampled independently per pixel on each frame.
-               That pixel's noise value is added to each of its color
-               channels, which at that point lie in the range [0,1]. -->
-          <mean>0.0</mean>
-          <stddev>0.007</stddev>
-        </noise>
-      </camera>
-      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>0.0</updateRate>
-        <cameraName>middle</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>camera_link_optical_middle</frameName>
         <hackBaseline>0.07</hackBaseline>
         <distortionK1>0.0</distortionK1>
         <distortionK2>0.0</distortionK2>
