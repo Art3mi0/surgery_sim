@@ -2,19 +2,20 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <surgery_sim/Plan.h>
+#include <surgery_sim/PedalEvent.h>
 #include <surgery_sim/Reset.h>
 #include <cstdlib>
 #include<omni_msgs/OmniFeedback.h>
 #include "std_msgs/Int32.h"
 
-std_msgs::Int32 button_data;
+surgery_sim::PedalEvent pedal_data;
 geometry_msgs::Twist plan_point;
 geometry_msgs::Twist haptic_point;
 geometry_msgs::Twist robot_point;
 geometry_msgs::Twist final_point;
 bool plan_received = false;
 bool haptic_received = false;
-bool button_received = false;
+bool pedal_received = false;
 bool h_pose_received = false;
 bool robot_received = false;
 bool timer_white = false;
@@ -24,17 +25,26 @@ bool white_press;
 bool grey_press;
 int click_count = 0;
 
-float x_max = 0.09;
-float x_min = -0.15;
-float y_max = -0.38;
-float y_min = -0.7;
-float z_max = 0.35;
-float z_min = 0.035;
+// real robot box
+// float x_max = 0.09;
+// float x_min = -0.15;
+// float y_max = -0.38;
+// float y_min = -0.7;
+// float z_max = 0.35;
+// float z_min = 0.035;
 
-void button_callback(const std_msgs::Int32 &  _data){
-	// read the button input
-	button_data = _data;
-	button_received = true;
+// simulation box
+float x_max = 1;
+float x_min = -1;
+float y_max = 1;
+float y_min = -2;
+float z_max = 1;
+float z_min = 0;
+
+void pedal_callback(const surgery_sim::PedalEvent &  _data){
+	// read the pedal input
+	pedal_data = _data;
+	pedal_received = true;
 }
 
 void plan_callback(const geometry_msgs::Twist &  _data){
@@ -172,8 +182,8 @@ int main(int argc, char* argv[]){
   
   ros::Timer timer = node.createTimer(ros::Duration(1), timer_callback, true);
  
-	// subscriber for reading haptic device button input
-	ros::Subscriber button_sub = node.subscribe("/key", 1, button_callback);
+	// subscriber for reading haptic device pedal input
+	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	// Subscriber for reading the plan trajectory
 	ros::Subscriber plan_sub = node.subscribe("/refplan", 1, plan_callback);
 	// Subscriber for reading the haptic trajectory
@@ -189,6 +199,7 @@ int main(int argc, char* argv[]){
   
   bool white_flag;
   bool grey_flag;
+	bool stop = false;
   bool robot_flag = true;
   
   double rx;
@@ -198,23 +209,30 @@ int main(int argc, char* argv[]){
   geometry_msgs::Twist robot_initial;
   
   ros::Rate rate(10.0);
-
   while (node.ok()){
   	if (robot_received){
   		if(robot_flag){
 				robot_initial = robot_point;
 				robot_flag = false;
 			}else{
-				rx = (robot_point.linear.x - robot_initial.linear.x) + origin_x;
-				ry = (robot_point.linear.y - robot_initial.linear.y) + origin_y;
-				rz = (robot_point.linear.z - robot_initial.linear.z) + origin_z;
+				if (!white_flag){
+					rx = (robot_point.linear.x - robot_initial.linear.x) + origin_x;
+					ry = (robot_point.linear.y - robot_initial.linear.y) + origin_y;
+					rz = (robot_point.linear.z - robot_initial.linear.z) + origin_z;
+					
+				}else{
+					rx = phantom_pos.pose.position.x;
+					ry = phantom_pos.pose.position.y;
+					rz = phantom_pos.pose.position.z;
+				}
+				
 			}
   	}
   	
   	//left-white middle-grey
   	//Left pedal-a	Middle pedal-b Right pedal-c
-  	if (button_received){
-  		if (button_data.data == 97 && (click_count == 0 || white_flag)){
+  	if (pedal_received){
+  		if (pedal_data.left_pedal == 1 && (click_count == 0 || white_flag)){
   			white_flag = false;
   			grey_flag = true;
   			white_press = true;
@@ -239,7 +257,7 @@ int main(int argc, char* argv[]){
     		timer.setPeriod(ros::Duration(.2));
     		timer.start();
   		}
-  		else if (button_data.data == 98 && (click_count == 0 || grey_flag)){
+  		else if (pedal_data.middle_pedal == 1 && (click_count == 0 || grey_flag)){
   			white_flag = true;
   			grey_flag = false;
   			white_press = false;
@@ -260,27 +278,32 @@ int main(int argc, char* argv[]){
     		timer.stop();
     		timer.setPeriod(ros::Duration(.5));
     		timer.start(); 		
-  		}
+  		} else if (pedal_data.right_pedal == 1){
+				stop = true;
+  			reset.request.plan_start = false;
+  			reset.request.hap_start = false;
+				overlay_client.call(reset);
+			}
   			
-  		if (timer_white && plan_received){
+  		if (timer_white && plan_received && !stop){
 				check_box(plan_point);
 				pub_robot.publish(final_point);
-			} else if (timer_grey && haptic_received){
+			} else if (timer_grey && haptic_received && !stop){
 				check_box(haptic_point);
 				pub_robot.publish(final_point);
 			}
 		}
-		if (h_pose_received && robot_received){
+		if (h_pose_received && robot_received & !stop){
 			update_force(rx, ry, rz);
 			calc_center_force();
-			if (!white_flag){
+			//if (!white_flag){
 				force_pub.publish(centering_force);
-			} else{
-				centering_force_prev = centering_force_reset;
-				e_x_prev = 0.0;
-				e_y_prev = 0.0;
-				e_z_prev = 0.0;
-			}
+			// } else{
+			// 	centering_force_prev = centering_force_reset;
+			// 	e_x_prev = 0.0;
+			// 	e_y_prev = 0.0;
+			// 	e_z_prev = 0.0;
+			// }
 			/*
 			ROS_INFO("Differences: x:%f y:%f z:%f", phantom_pos.pose.position.x - ry/3, phantom_pos.pose.position.y - -rx, phantom_pos.pose.position.z - rz/3);
 		}*/

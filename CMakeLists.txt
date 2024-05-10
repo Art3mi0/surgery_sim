@@ -71,6 +71,9 @@ target_link_libraries(plan_listener ${catkin_LIBRARIES})
 add_executable(point_counter src/point_counter.cpp)
 target_link_libraries(point_counter ${catkin_LIBRARIES})
 
+add_executable(data_logger src/data_logger.cpp)
+target_link_libraries(data_logger ${catkin_LIBRARIES})
+
 add_executable(switch_node src/switch_node.cpp)
 target_link_libraries(switch_node ${catkin_LIBRARIES})
 

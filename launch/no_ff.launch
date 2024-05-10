@@ -4,6 +4,7 @@
 	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" >
 		<param name="plan_type" value="planner"/>
 	</node>
+	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
 	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" />
 	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />

@@ -1,0 +1,46 @@
+<launch>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.06496 -0.47047 0.001 -1.5708 0.0 0.0 base checkerboard_link" />
+
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera1_checkerboard" args="0.447 0.019 0.440 0.672 0.637 -0.250 -0.283 checkerboard_link left_camera_link" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera2_checkerboard" args="0.450 0.095 0.437 0.662 0.646 -0.285 -0.252 checkerboard_link right_camera_link" />
+	
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera_user_checkerboard" args="0.4485 0.057 0.4385 0.667 0.6415 -0.2675 -0.2675 checkerboard_link camera_user" />
+	
+	
+</launch>
+
+
+
+
+<!-- 
+
+Old Checkerboard robot pos:
+<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.059138 -0.47211455 0.001 -1.5708 0.0 0.0 base checkerboard" />
+
+transform: 
+      translation: 
+        x: -0.0092920180023381
+        y: -0.4935359422266478
+        z: 0.1456020940775678
+      rotation: 
+        x: 0.002027325575925504
+        y: 0.9999979449664627
+        z: -3.5588145558863697e-06
+        w: 1.0933838086645908e-06
+        
+
+transform: 
+      translation: 
+        x: -0.007793481133711956
+        y: -0.4929357300757655
+        z: -0.0021765066253691817
+      rotation: 
+        x: -0.0020173303441914105
+        y: -0.9999979651744207
+        z: -2.3848947502821717e-06
+        w: 4.42864165233438e-06
+
+0.375, 0.165, 0.397
+
+
+-->

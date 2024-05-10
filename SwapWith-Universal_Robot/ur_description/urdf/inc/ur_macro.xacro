@@ -302,7 +302,7 @@
       </xacro:if>
       <dynamics damping="0" friction="0"/>
     </joint>
-
+	
 	<material name="LightGrey">
 		<color rgba="0.7 0.7 0.7 1.0"/>
 	</material>
@@ -324,13 +324,13 @@
     <link name="${prefix}flange">
     <visual>
 			<geometry>
-				<cylinder length="0.06" radius="0.02"/>
+				<cylinder length="0.01" radius="0.03"/>
 			</geometry>
 			<material name="LightGrey"/>
 		</visual>
 		<collision>
 			<geometry>
-				<cylinder length="0.06" radius="0.02"/>
+				<cylinder length="0.01" radius="0.03"/>
 			</geometry>
 		</collision>
 	</link>
@@ -338,23 +338,41 @@
     <joint name="${prefix}wrist_3-flange" type="fixed">
       <parent link="${prefix}wrist_3_link" />
       <child link="${prefix}flange" />
-      <origin xyz="0 0 .03" rpy="0 0 0" />
+      <origin xyz="0 0 .005" rpy="0 0 0" />
     </joint>
 
     <!-- ROS-Industrial 'tool0' frame: all-zeros tool frame -->
     <link name="${prefix}tool0">
 		<visual>
 			<geometry>
-				<cylinder length="0.06" radius="0.005"/>
+				<cylinder length="0.12" radius="0.01"/>
 			</geometry>
 			<material name="LightGrey"/>
 		</visual>
 		<collision>
 			<geometry>
-				<cylinder length="0.06" radius="0.005"/>
+				<cylinder length="0.12" radius="0.01"/>
 			</geometry>
 		</collision>
 	</link>
+	
+	<link name="${prefix}needle">
+		<visual>
+			<geometry>
+				<cylinder length="0.0285" radius="0.001"/>
+			</geometry>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length="0.0285" radius="0.001"/>
+			</geometry>
+		</collision>
+	</link>
+	
+	<gazebo reference="${prefix}needle">
+  <material>Gazebo/Black</material>
+  </gazebo> 
+	
     <joint name="${prefix}flange-tool0" type="fixed">
       <!-- default toolframe: X+ left, Y+ up, Z+ front -->
       <origin xyz="0 0 0.06" rpy="0 0 0"/>
@@ -362,14 +380,18 @@
       <child link="${prefix}tool0"/>
     </joint>
     
+    <joint name="${prefix}tool0-needle" type="fixed">
+      <!-- default toolframe: X+ left, Y+ up, Z+ front -->
+      <origin xyz="0 0 0.07425" rpy="0 0 0"/>
+      <parent link="${prefix}tool0"/>
+      <child link="${prefix}needle"/>
+    </joint>
+    
   <link name="checkerboard_link">
     <visual>
 			<geometry>
 				<box size=".085 .085 .01"/>
 			</geometry>
-			<material name="Black">
-   			<color rgba="0.0 0.0 0.0 1.0"/>
-  		</material>
 		</visual>
 		<inertial>
       <mass value="1e-5" />
@@ -396,14 +418,11 @@
     </inertial>
 	</link>
 	
-	<link name="dummy_link">
+	<link name="dummy_link_ns">
     <visual>
 			<geometry>
-				<box size="0.01 0.3 0.01"/>
+				<box size="0.01 0.3 0.03"/>
 			</geometry>
-			<material name="Blue">
-   			<color rgba="0.0 0.0 0.8 1.0"/>
-  		</material>
 		</visual>
 		<inertial>
       <mass value="1e-5" />
@@ -412,7 +431,24 @@
     </inertial>
 	</link>
 	
-	<gazebo reference="dummy_link">
+	<link name="dummy_link_ew">
+    <visual>
+			<geometry>
+				<box size="0.01 0.3 0.03"/>
+			</geometry>
+		</visual>
+		<inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+	</link>
+	
+	<gazebo reference="dummy_link_ns">
+  <material>Gazebo/Blue</material>
+  </gazebo>
+  
+  <gazebo reference="dummy_link_ew">
   <material>Gazebo/Blue</material>
   </gazebo>
 	
@@ -425,15 +461,30 @@
 	<joint name="table_joint" type="fixed">
       <parent link="checkerboard_link" />
       <child link="table_link" />
-      <origin xyz="0.3 -0.1 .01" rpy="0 0 0" />
+      <origin xyz=".01 0.05 .01" rpy="0 0 0" />
     </joint>
    
-  <joint name="dummy_joint" type="fixed">
+  <joint name="dummy_ns_joint" type="fixed">
       <parent link="table_link" />
-      <child link="dummy_link" />
-      <origin xyz="0 0 .05" rpy="0 -1.57 0" />
+      <child link="dummy_link_ns" />
+      <origin xyz="0 0 .015" rpy="0 0 0" />
+    </joint>
+  
+  <joint name="dummy_ew_joint" type="fixed">
+      <parent link="table_link" />
+      <child link="dummy_link_ew" />
+      <origin xyz="0 0 .015" rpy="0 0 -1.57" />
     </joint>
     
+  <link name="camera_user">
+  </link>
+ 	
+ 	<joint name="user_joint" type="fixed">
+      <parent link="checkerboard_link" />
+      <child link="camera_user" />
+      <origin xyz="0.4485 0.057 0.4385" rpy="-2.366 0.014 1.537" />
+    </joint>
+ 	
     <!-- Camera left -->
   <link name="left_camera_link">
     <visual>
@@ -457,8 +508,16 @@
       <origin xyz="0.447 0.019 0.440" rpy="-2.367 -0.025 1.507" />
     </joint>
     
+   <joint name="left_camera_end_joint" type="fixed">
+      <parent link="camera_link_optical_left" />
+      <child link="camera_link_pos_left" />
+      <origin xyz="-0.07 0 0" rpy="0 0 0" />
+    </joint>
+    
    <link name="camera_link_optical_left">
   </link> 
+  <link name="camera_link_pos_left">
+  </link>
    
     <!-- generate an optical frame http://www.ros.org/reps/rep-0103.html#suffix-frames
       so that ros and opencv can operate on the camera frame correctly -->
@@ -528,8 +587,16 @@
     <parent link="camera_link_optical_right"/>
     <child link="right_camera_link"/>
   </joint>
+  
+  <joint name="right_camera_end_joint" type="fixed">
+      <parent link="camera_link_optical_right" />
+      <child link="camera_link_pos_right" />
+      <origin xyz="-0.07 0 0" rpy="0 0 0" />
+    </joint>
 
   <link name="camera_link_optical_right">
+  </link>
+  <link name="camera_link_pos_right">
   </link>
   
   <xacro:property name="link_name1" value="left_camera_link" />
@@ -567,7 +634,7 @@
         <cameraName>stereo/left</cameraName>
         <imageTopicName>image_raw</imageTopicName>
         <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>camera_link_optical_left</frameName>
+        <frameName>camera_link_pos_left</frameName>
         <hackBaseline>0.07</hackBaseline>
         <distortionK1>0.0</distortionK1>
         <distortionK2>0.0</distortionK2>
@@ -608,7 +675,7 @@
         <cameraName>stereo/right</cameraName>
         <imageTopicName>image_raw</imageTopicName>
         <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>camera_link_optical_right</frameName>
+        <frameName>camera_link_pos_right</frameName>
         <hackBaseline>0.07</hackBaseline>
         <distortionK1>0.0</distortionK1>
         <distortionK2>0.0</distortionK2>

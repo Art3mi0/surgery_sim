@@ -2,8 +2,9 @@
 
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" />
 	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" >
-		<param name="plan_type" value="model"/>
+		<param name="plan_type" value="model_ew"/>
 	</node>
+	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
 	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" />
 	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />
@@ -14,7 +15,7 @@
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
 	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
 		<param name="source" value="plan"/>
-		<param name="mode" value="crop"/>
+		<param name="mode" value="full"/>
 	</node>
 
 </launch>
@@ -23,7 +24,10 @@
 
 source options - "click"; "plan"; "path"
 mode options - "resize"; "crop"; "full"
-plan_type options - "coded"; "clicked"; "planner"; "model"
+plan_type options - "coded"; "clicked"; "planner"; "model_ew"; "model_ns"
 move_scale options - any float not greater an 3.0
+<node pkg="surgery_sim" type="data_logger" name="data_logger" >
+		<param name="test_no" value="1"/>
+	</node>
 
 -->

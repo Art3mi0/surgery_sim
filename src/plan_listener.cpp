@@ -4,6 +4,7 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PointStamped.h>
 #include <surgery_sim/Plan.h>
+#include <surgery_sim/PedalEvent.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
 #include<sensor_msgs/PointCloud2.h>
@@ -29,8 +30,8 @@ bool plan_created = false;
 bool call_traj = false;
 bool dbg_flag = false;
 bool filter_received = false;
-bool button_received = false;
-std_msgs::Int32 button_data;
+bool pedal_received = false;
+surgery_sim::PedalEvent pedal_data;
 
 std::string plan_type = "model"; // Options: coded; clicked; planner; model
 
@@ -43,10 +44,10 @@ void filtered_callback(const sensor_msgs::PointCloud2 & _data){
      filter_received = true;
 }
 
-void button_callback(const std_msgs::Int32 &  _data){
-	// read the button input
-	button_data = _data;
-	button_received = true;
+void pedal_callback(const surgery_sim::PedalEvent &  _data){
+	// read the pedal input
+	pedal_data = _data;
+	pedal_received = true;
 }
 
 void robot_callback(const geometry_msgs::Twist &  _data){
@@ -118,7 +119,7 @@ int main(int argc, char** argv){
 
   ros::NodeHandle node;
 	ros::NodeHandle home("~");
-	std::string plan_type = "model";
+	std::string plan_type = "model_ew";
 	home.getParam("plan_type", plan_type); // options are: coded; clicked; planner; model
   
   ros::ServiceServer service = node.advertiseService("plan_server", flag);
@@ -130,7 +131,7 @@ int main(int argc, char** argv){
   ros::Publisher pub_point= node.advertise<geometry_msgs::PointStamped>( "/haptic_point", 1 );
   ros::Publisher dbg_traj_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("plancloud",1);
 	// subscriber for readingpedal input
-	ros::Subscriber button_sub = node.subscribe("/key", 1, button_callback);
+	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	ros::Subscriber filtered_sub = node.subscribe("/filtered_path", 1, filtered_callback);
 
   // Needed robot toolpoint when running simulation without model
@@ -155,11 +156,11 @@ int main(int argc, char** argv){
   ros::Rate loop_rate(loop_freq);
   while (node.ok()){
 	tf::StampedTransform transform;
-	if (plan_type == "model"){
+	if ((plan_type == "model_ew") || (plan_type == "model_ns")){
 		try{
 		// Self note: When transforming from one thing that already exists to something else, 
 		// it is not necessary to make a broadcaster node. Just use the existing links.
-		listener.lookupTransform("base", "dummy_link",  
+		listener.lookupTransform("base", "dummy_link_ew",  
 								ros::Time(0), transform);
 		}
 		catch (tf::TransformException ex){
@@ -213,8 +214,8 @@ int main(int argc, char** argv){
 		dbg_cloud.points.push_back(tmp);
 
 		// Will create plan based off an object added in gazebo. Will not work without object.
-		if (plan_type == "model"){			
-			plan_point.linear.x = transform.getOrigin().x() + .1;
+		if (plan_type == "model_ew"){			
+			plan_point.linear.x = transform.getOrigin().x() + .15;
 			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
 			plan_points.push_back(plan_point);
@@ -223,56 +224,50 @@ int main(int argc, char** argv){
 			tmp.z = initial.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x() + .1;
-			plan_point.linear.y = transform.getOrigin().y();
-			plan_point.linear.z = transform.getOrigin().z();
-			plan_points.push_back(plan_point);
-			tmp.x = plan_point.linear.x;
-			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
-			dbg_cloud.points.push_back(tmp);
-			
-			plan_point.linear.x = transform.getOrigin().x() + .05;
-			plan_point.linear.y = transform.getOrigin().y();
-			plan_point.linear.z = transform.getOrigin().z();
-			plan_points.push_back(plan_point);
-			tmp.x = plan_point.linear.x;
-			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
-			dbg_cloud.points.push_back(tmp);
-			
+			float tmp_off = 0.0;
+			for (int i = 0; i < 11; i++){
+				plan_point.linear.x = transform.getOrigin().x() + (.15 + tmp_off);
+				plan_point.linear.y = transform.getOrigin().y();
+				plan_point.linear.z = transform.getOrigin().z() + .015;
+				plan_points.push_back(plan_point);
+				tmp.x = plan_point.linear.x;
+				tmp.y = plan_point.linear.y;
+				tmp.z = plan_point.linear.z;
+				dbg_cloud.points.push_back(tmp);
+				tmp_off = tmp_off - 0.03;
+			}
+
+			plan.points = plan_points;	
+			plan_created = true;
+
+		}if (plan_type == "model_ns"){			
 			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y();
-			plan_point.linear.z = transform.getOrigin().z();
+			plan_point.linear.y = transform.getOrigin().y() + .15;
+			plan_point.linear.z = initial.linear.z;
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
+			tmp.z = initial.linear.z;
 			dbg_cloud.points.push_back(tmp);
 			
-			plan_point.linear.x = transform.getOrigin().x() - .05;
-			plan_point.linear.y = transform.getOrigin().y();
-			plan_point.linear.z = transform.getOrigin().z();
-			plan_points.push_back(plan_point);
-			tmp.x = plan_point.linear.x;
-			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
-			dbg_cloud.points.push_back(tmp);
-			
-			plan_point.linear.x = transform.getOrigin().x() - .1;
-			plan_point.linear.y = transform.getOrigin().y();
-			plan_point.linear.z = transform.getOrigin().z();
-			plan_points.push_back(plan_point);
-			tmp.x = plan_point.linear.x;
-			tmp.y = plan_point.linear.y;
-			tmp.z = plan_point.linear.z;
-			dbg_cloud.points.push_back(tmp);
+			float tmp_off = 0.0;
+			for (int i = 0; i < 11; i++){
+				plan_point.linear.x = transform.getOrigin().x();
+				plan_point.linear.y = transform.getOrigin().y() + (.15 + tmp_off);
+				plan_point.linear.z = transform.getOrigin().z() + .015;
+				plan_points.push_back(plan_point);
+				tmp.x = plan_point.linear.x;
+				tmp.y = plan_point.linear.y;
+				tmp.z = plan_point.linear.z;
+				dbg_cloud.points.push_back(tmp);
+				tmp_off = tmp_off - 0.03;
+			}
 
 			plan.points = plan_points;	
 			plan_created = true;
 
 		// Custom points chosen by moving the robot and copying pose.
-		} if (plan_type == "coded"){
+		}else if (plan_type == "coded"){
 			plan_point.linear.x = 0.0461;
 			plan_point.linear.y = -0.574775;
 			plan_point.linear.z = 0.051236;
@@ -303,7 +298,7 @@ int main(int argc, char** argv){
 			plan.points = plan_points;	
 			plan_created = true;
 		} else if ((plan_type == "planner") && (filter_received)){
-			if ((button_received) && (button_data.data == 99)){
+			if ((pedal_received) && (pedal_data.right_pedal == 1)){
 				// pcl::PointCloud<pcl::PointXYZ>::iterator ctr = filtered_path.begin(); 
 				pcl_ros::transformPointCloud("base", filtered_path, transformed_path, listener);
 				for (int i = 0; i < transformed_path.points.size(); i++){

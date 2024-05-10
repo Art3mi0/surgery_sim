@@ -2,19 +2,20 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <surgery_sim/Plan.h>
+#include <surgery_sim/PedalEvent.h>
 #include <surgery_sim/Reset.h>
 #include <cstdlib>
 #include<omni_msgs/OmniFeedback.h>
 #include "std_msgs/Int32.h"
 
-std_msgs::Int32 button_data;
+surgery_sim::PedalEvent pedal_data;
 geometry_msgs::Twist plan_point;
 geometry_msgs::Twist haptic_point;
 geometry_msgs::Twist robot_point;
 geometry_msgs::Twist final_point;
 bool plan_received = false;
 bool haptic_received = false;
-bool button_received = false;
+bool pedal_received = false;
 bool h_pose_received = false;
 bool robot_received = false;
 bool timer_white = false;
@@ -31,10 +32,10 @@ float y_min = -0.7;
 float z_max = 0.35;
 float z_min = 0.035;
 
-void button_callback(const std_msgs::Int32 &  _data){
-	// read the button input
-	button_data = _data;
-	button_received = true;
+void pedal_callback(const surgery_sim::PedalEvent &  _data){
+	// read the pedal input
+	pedal_data = _data;
+	pedal_received = true;
 }
 
 void plan_callback(const geometry_msgs::Twist &  _data){
@@ -166,8 +167,8 @@ int main(int argc, char* argv[]){
   
   ros::Timer timer = node.createTimer(ros::Duration(1), timer_callback, true);
  
-	// subscriber for reading haptic device button input
-	ros::Subscriber button_sub = node.subscribe("/key", 1, button_callback);
+	// subscriber for reading haptic device pedal input
+	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	// Subscriber for reading the plan trajectory
 	ros::Subscriber plan_sub = node.subscribe("/refplan", 1, plan_callback);
 	// Subscriber for reading the haptic trajectory
@@ -207,8 +208,8 @@ int main(int argc, char* argv[]){
   	
   	//left-white middle-grey
   	//Left pedal-a	Middle pedal-b Right pedal-c
-  	if (button_received){
-  		if (button_data.data == 97 && (click_count == 0 || white_flag)){
+  	if (pedal_received){
+  		if (pedal_data.left_pedal == 1 && (click_count == 0 || white_flag)){
   			white_flag = false;
   			grey_flag = true;
   			white_press = true;
@@ -233,7 +234,7 @@ int main(int argc, char* argv[]){
     		timer.setPeriod(ros::Duration(.2));
     		timer.start();
   		}
-  		else if (button_data.data == 98 && (click_count == 0 || grey_flag)){
+  		else if (pedal_data.middle_pedal == 1 && (click_count == 0 || grey_flag)){
   			white_flag = true;
   			grey_flag = false;
   			white_press = false;

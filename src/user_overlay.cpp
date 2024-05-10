@@ -35,9 +35,11 @@ bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
   if (req.hap_start){
   	text = "Current Mode: Manual";
-  } else{
+  }else if (req.plan_start){
   	text = "Current Mode: Autonomous";
-  } 
+  } else{
+    text = "current Mode: Stopped";
+  }
   return true;
 }
 
@@ -230,9 +232,9 @@ int main(int argc, char** argv)
       } else{
         cv::putText(cv_ptr_l->image, 
         text,
-        cv::Point((width/2) - 800, 130), 
+        cv::Point((800/6), 800 * .07), 
         cv::FONT_HERSHEY_DUPLEX,
-        text_size * 1.5, 
+        text_size * .5, 
         CV_RGB(255,0,0),
         3);
 
