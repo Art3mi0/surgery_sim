@@ -92,6 +92,9 @@ target_link_libraries(pedal_controller ${catkin_LIBRARIES})
 add_executable(user_overlay src/user_overlay.cpp)
 target_link_libraries(user_overlay ${catkin_LIBRARIES})
 
+add_executable(sim_user_overlay src/sim_user_overlay.cpp)
+target_link_libraries(sim_user_overlay ${catkin_LIBRARIES})
+
 add_executable(overlay_broadcast src/overlay_broadcast.cpp)
 target_link_libraries(overlay_broadcast ${catkin_LIBRARIES})
 

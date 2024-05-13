@@ -9,13 +9,13 @@
 	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" />
 	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />
 	<node pkg="surgery_sim" type="listener" name="listener_node" >
-		<param name="move_scale" value="1.5"/>
+		<param name="move_scale" value="0.5"/>
 	</node>
 	<node pkg="surgery_sim" type="switch_node" name="switch_node" output="screen" />
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
-	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
+	<node pkg="surgery_sim" type="sim_user_overlay" name="sim_user_overlay" >
 		<param name="source" value="plan"/>
-		<param name="mode" value="full"/>
+		<param name="mode" value="crop"/>
 	</node>
 
 </launch>
@@ -23,7 +23,7 @@
 <!-- 
 
 source options - "click"; "plan"; "path"
-mode options - "resize"; "crop"; "full"
+mode options - "resize"; "resize_crop"; "crop"; "full"
 plan_type options - "coded"; "clicked"; "planner"; "model_ew"; "model_ns"
 move_scale options - any float not greater an 3.0
 <node pkg="surgery_sim" type="data_logger" name="data_logger" >

@@ -215,7 +215,7 @@ int main(int argc, char** argv){
 
 		// Will create plan based off an object added in gazebo. Will not work without object.
 		if (plan_type == "model_ew"){			
-			plan_point.linear.x = transform.getOrigin().x() + .15;
+			plan_point.linear.x = transform.getOrigin().x() + .015;
 			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
 			plan_points.push_back(plan_point);
@@ -225,16 +225,16 @@ int main(int argc, char** argv){
 			dbg_cloud.points.push_back(tmp);
 			
 			float tmp_off = 0.0;
-			for (int i = 0; i < 11; i++){
-				plan_point.linear.x = transform.getOrigin().x() + (.15 + tmp_off);
+			for (int i = 0; i < 6; i++){
+				plan_point.linear.x = transform.getOrigin().x() + (.015 + tmp_off);
 				plan_point.linear.y = transform.getOrigin().y();
-				plan_point.linear.z = transform.getOrigin().z() + .015;
+				plan_point.linear.z = transform.getOrigin().z() + .0025;
 				plan_points.push_back(plan_point);
 				tmp.x = plan_point.linear.x;
 				tmp.y = plan_point.linear.y;
 				tmp.z = plan_point.linear.z;
 				dbg_cloud.points.push_back(tmp);
-				tmp_off = tmp_off - 0.03;
+				tmp_off = tmp_off - 0.006;
 			}
 
 			plan.points = plan_points;	
@@ -242,7 +242,7 @@ int main(int argc, char** argv){
 
 		}if (plan_type == "model_ns"){			
 			plan_point.linear.x = transform.getOrigin().x();
-			plan_point.linear.y = transform.getOrigin().y() + .15;
+			plan_point.linear.y = transform.getOrigin().y() + .015;
 			plan_point.linear.z = initial.linear.z;
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
@@ -251,16 +251,16 @@ int main(int argc, char** argv){
 			dbg_cloud.points.push_back(tmp);
 			
 			float tmp_off = 0.0;
-			for (int i = 0; i < 11; i++){
+			for (int i = 0; i < 6; i++){
 				plan_point.linear.x = transform.getOrigin().x();
-				plan_point.linear.y = transform.getOrigin().y() + (.15 + tmp_off);
-				plan_point.linear.z = transform.getOrigin().z() + .015;
+				plan_point.linear.y = transform.getOrigin().y() + (.015 + tmp_off);
+				plan_point.linear.z = transform.getOrigin().z() + .0025;
 				plan_points.push_back(plan_point);
 				tmp.x = plan_point.linear.x;
 				tmp.y = plan_point.linear.y;
 				tmp.z = plan_point.linear.z;
 				dbg_cloud.points.push_back(tmp);
-				tmp_off = tmp_off - 0.03;
+				tmp_off = tmp_off - 0.006;
 			}
 
 			plan.points = plan_points;	

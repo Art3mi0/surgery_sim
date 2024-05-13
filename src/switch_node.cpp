@@ -297,7 +297,7 @@ int main(int argc, char* argv[]){
 			update_force(rx, ry, rz);
 			calc_center_force();
 			//if (!white_flag){
-				force_pub.publish(centering_force);
+			force_pub.publish(centering_force);
 			// } else{
 			// 	centering_force_prev = centering_force_reset;
 			// 	e_x_prev = 0.0;
