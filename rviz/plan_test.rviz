@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /RobotModel1
         - /TF1
         - /TF1/Frames1
         - /PointCloud21
@@ -79,11 +80,67 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        camera_link_optical_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_optical_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_pos_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_pos_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_user:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        checkerboard_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_link_ew:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_link_ns:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         flange:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         forearm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        needle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        needle_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_camera_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -93,7 +150,17 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        table_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         tool0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tool0_controller:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -102,6 +169,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         wrist_1_link:
           Alpha: 1
           Show Axes: false
@@ -124,22 +195,115 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base:
+          Value: false
+        base_link:
+          Value: false
+        base_link_inertia:
+          Value: false
+        camera_link_optical_left:
+          Value: false
+        camera_link_optical_right:
+          Value: false
+        camera_link_pos_left:
+          Value: false
+        camera_link_pos_right:
+          Value: false
+        camera_user:
+          Value: false
+        checkerboard_link:
+          Value: false
+        dummy_link_ew:
+          Value: false
+        dummy_link_ns:
+          Value: false
+        fk_tooltip:
+          Value: false
+        flange:
+          Value: false
+        forearm_link:
+          Value: false
+        haptic:
+          Value: true
+        left_camera_link:
+          Value: false
+        needle:
+          Value: false
+        needle_tip:
+          Value: false
+        right_camera_link:
+          Value: false
+        shoulder_link:
+          Value: false
+        table_link:
+          Value: false
+        tool0:
+          Value: false
+        tool0_controller:
+          Value: false
+        upper_arm_link:
+          Value: false
+        world:
+          Value: false
+        wrist_1_link:
+          Value: false
+        wrist_2_link:
+          Value: false
+        wrist_3_link:
+          Value: false
       Marker Alpha: 1
-      Marker Scale: 0.5
+      Marker Scale: 0.10000000149011612
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        world:
+          base_link:
+            base:
+              checkerboard_link:
+                camera_link_optical_left:
+                  camera_link_pos_left:
+                    {}
+                  left_camera_link:
+                    {}
+                camera_link_optical_right:
+                  camera_link_pos_right:
+                    {}
+                  right_camera_link:
+                    {}
+                camera_user:
+                  haptic:
+                    {}
+                table_link:
+                  dummy_link_ew:
+                    {}
+                  dummy_link_ns:
+                    {}
+              fk_tooltip:
+                {}
+            base_link_inertia:
+              shoulder_link:
+                upper_arm_link:
+                  forearm_link:
+                    wrist_1_link:
+                      wrist_2_link:
+                        wrist_3_link:
+                          flange:
+                            tool0:
+                              needle:
+                                needle_tip:
+                                  {}
+                              tool0_controller:
+                                {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -217,8 +381,8 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.004999999888241291
-      Style: Flat Squares
+      Size (m): 0.0010000000474974513
+      Style: Points
       Topic: /robot_point
       Unreliable: false
       Use Fixed Frame: true
@@ -252,7 +416,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.46837732195854187
+      Distance: 0.6120027899742126
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -260,17 +424,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.04488907381892204
-        Y: -0.5529700517654419
-        Z: 0.04348648712038994
+        X: 0.027866346761584282
+        Y: -0.6380913257598877
+        Z: -0.08312518894672394
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4603981673717499
+      Pitch: 0.46539804339408875
       Target Frame: <Fixed Frame>
-      Yaw: 4.818576335906982
+      Yaw: 4.123565673828125
     Saved: ~
 Window Geometry:
   Displays:

@@ -2,5 +2,7 @@ bool hap_flag
 bool hap_start
 bool plan_flag
 bool plan_start
+bool preview
+bool manual
 ---
 bool out

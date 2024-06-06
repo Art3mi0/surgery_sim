@@ -5,14 +5,17 @@
 #include <surgery_sim/PedalEvent.h>
 #include <surgery_sim/Reset.h>
 #include <cstdlib>
-#include<omni_msgs/OmniFeedback.h>
-#include "std_msgs/Int32.h"
+#include <omni_msgs/OmniFeedback.h>
+#include <std_msgs/Int32.h>
 
-surgery_sim::PedalEvent pedal_data;
 geometry_msgs::Twist plan_point;
 geometry_msgs::Twist haptic_point;
 geometry_msgs::Twist robot_point;
 geometry_msgs::Twist final_point;
+bool left_pressed;
+bool middle_pressed;
+bool right_pressed;
+bool held = false;
 bool plan_received = false;
 bool haptic_received = false;
 bool pedal_received = false;
@@ -43,7 +46,33 @@ float z_min = 0;
 
 void pedal_callback(const surgery_sim::PedalEvent &  _data){
 	// read the pedal input
-	pedal_data = _data;
+	if (_data.left_pedal == 1){
+		if (!held){
+			left_pressed = true;
+		} else{
+			left_pressed = false;
+		}
+		held = true;
+	} else if (_data.middle_pedal == 1){
+		if (!held){
+			middle_pressed = true;
+		} else{
+			middle_pressed = false;
+		}
+		held = true;
+	} else if (_data.right_pedal == 1){
+		if (!held){
+			right_pressed = true;
+		} else{
+			right_pressed = false;
+		}
+		held = true;
+	} else{
+		held = false;
+		left_pressed = false;
+		middle_pressed = false;
+		right_pressed = false;
+	}
 	pedal_received = true;
 }
 
@@ -104,8 +133,8 @@ void check_box(const geometry_msgs::Twist point){
 
 // This is for remebering the orignial position at lines 208-210 to avoid kicks
 double origin_x = -0.007;
-double origin_y = -.053;
-double origin_z = 0.07;
+double origin_y = -.02;
+double origin_z = 0.04;
 
 // desired values of x, y, z for centering the haptic device
 double x_d = origin_x;
@@ -196,11 +225,15 @@ int main(int argc, char* argv[]){
   ros::Publisher pub_robot = node.advertise<geometry_msgs::Twist>("/reftraj", 1);
   // Publisher for the force feedback of haptic device
   ros::Publisher force_pub =node.advertise<omni_msgs::OmniFeedback>("/phantom/phantom/force_feedback",1);
+	ros::Publisher pub_mode= node.advertise<std_msgs::Int32>( "/current_mode", 1 );
   
-  bool white_flag;
-  bool grey_flag;
+  bool white_flag = false;
+  bool grey_flag = true;
 	bool stop = false;
   bool robot_flag = true;
+
+	std_msgs::Int32 current_mode;
+	current_mode.data = 1; // 0 = autonomous; 1 = manual
   
   double rx;
 	double ry;
@@ -215,10 +248,10 @@ int main(int argc, char* argv[]){
 				robot_initial = robot_point;
 				robot_flag = false;
 			}else{
-				if (!white_flag){
-					rx = (robot_point.linear.x - robot_initial.linear.x) + origin_x;
-					ry = (robot_point.linear.y - robot_initial.linear.y) + origin_y;
-					rz = (robot_point.linear.z - robot_initial.linear.z) + origin_z;
+				if ((!white_flag) || (click_count == 0)){
+					rx = 4 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
+					ry = 4 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
+					rz = 4 * (robot_point.linear.z - robot_initial.linear.z) + origin_z;
 					
 				}else{
 					rx = phantom_pos.pose.position.x;
@@ -232,7 +265,22 @@ int main(int argc, char* argv[]){
   	//left-white middle-grey
   	//Left pedal-a	Middle pedal-b Right pedal-c
   	if (pedal_received){
-  		if (pedal_data.left_pedal == 1 && (click_count == 0 || white_flag)){
+			if ((middle_pressed) && (click_count == 0)){
+				reset.request.preview = true;
+				if (grey_flag){
+					reset.request.manual = false;
+					white_flag = true;
+					grey_flag = false;
+					current_mode.data = 0;
+				} else{
+					reset.request.manual = true;
+					grey_flag = true;
+					white_flag = false;
+					current_mode.data = 1;
+				}
+				overlay_client.call(reset);
+			}
+  		if (left_pressed && white_flag){
   			white_flag = false;
   			grey_flag = true;
   			white_press = true;
@@ -242,7 +290,10 @@ int main(int argc, char* argv[]){
   			reset.request.plan_flag = true;
   			reset.request.hap_start = false;
   			reset.request.hap_flag = false;
-				overlay_client.call(reset);
+				reset.request.preview = false;
+				if (!stop){
+					overlay_client.call(reset);
+				}
   			haptic_client.call(reset);
   			frame_client.call(reset);
   			if (click_count > 0){
@@ -251,13 +302,14 @@ int main(int argc, char* argv[]){
   				traj_client.call(reset);
   			}
     		ROS_INFO("out: started plan. haptic off");
+				current_mode.data = 0;
     		haptic_received = false;
     		click_count ++;
     		timer.stop();
     		timer.setPeriod(ros::Duration(.2));
     		timer.start();
   		}
-  		else if (pedal_data.middle_pedal == 1 && (click_count == 0 || grey_flag)){
+  		else if (left_pressed && grey_flag){
   			white_flag = true;
   			grey_flag = false;
   			white_press = false;
@@ -267,28 +319,32 @@ int main(int argc, char* argv[]){
   			reset.request.plan_start = false;
   			reset.request.hap_start = true;
   			reset.request.hap_flag = true;
-				overlay_client.call(reset);
+				reset.request.preview = false;
+				if (!stop){
+					overlay_client.call(reset);
+				}
   			traj_client.call(reset);
   			plan_client.call(reset);
   			haptic_client.call(reset);
   			//frame_client.call(reset);
     		ROS_INFO("out: resetting plan. haptic on");
+				current_mode.data = 1;
     		plan_received = false;
     		click_count ++;
     		timer.stop();
     		timer.setPeriod(ros::Duration(.5));
     		timer.start(); 		
-  		} else if (pedal_data.right_pedal == 1){
+  		} else if (right_pressed){
 				stop = true;
   			reset.request.plan_start = false;
   			reset.request.hap_start = false;
 				overlay_client.call(reset);
 			}
   			
-  		if (timer_white && plan_received && !stop){
+  		if (timer_white && plan_received && !stop && (click_count > 0)){
 				check_box(plan_point);
 				pub_robot.publish(final_point);
-			} else if (timer_grey && haptic_received && !stop){
+			} else if (timer_grey && haptic_received && !stop && (click_count > 0)){
 				check_box(haptic_point);
 				pub_robot.publish(final_point);
 			}
@@ -308,6 +364,8 @@ int main(int argc, char* argv[]){
 			ROS_INFO("Differences: x:%f y:%f z:%f", phantom_pos.pose.position.x - ry/3, phantom_pos.pose.position.y - -rx, phantom_pos.pose.position.z - rz/3);
 		}*/
 		}
+
+		pub_mode.publish(current_mode);
 		
 		rate.sleep();
 		ros::spinOnce();

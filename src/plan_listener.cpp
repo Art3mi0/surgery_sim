@@ -12,6 +12,7 @@
 #include <cmath>
 #include "std_msgs/Int32.h"
 
+#define PI 3.14159265
 
 /*
 
@@ -37,7 +38,7 @@ std::string plan_type = "model"; // Options: coded; clicked; planner; model
 
 bool custom_plan = true;
 bool hap_flag;
-float offset = .002;
+float offset = .001;
 
 void filtered_callback(const sensor_msgs::PointCloud2 & _data){   
      pcl::fromROSMsg(_data, filtered_path);
@@ -140,6 +141,11 @@ int main(int argc, char** argv){
 	ros::Publisher pub_plan= node.advertise<surgery_sim::Plan>( "/plan", 1);
 
   tf::TransformListener listener;
+	tf::StampedTransform transform;
+	tf::StampedTransform transform_cube;
+
+	float cube_length = .0099;
+	float cylinder_length = .025;
   
   // Initiating variables
   bool robot_recorded = false;
@@ -155,13 +161,25 @@ int main(int argc, char** argv){
   int loop_freq = 10;
   ros::Rate loop_rate(loop_freq);
   while (node.ok()){
-	tf::StampedTransform transform;
-	if ((plan_type == "model_ew") || (plan_type == "model_ns")){
+	// tf::StampedTransform transform;
+	// tf::StampedTransform transform_cube;
+	if ((plan_type == "model_ew") || (plan_type == "model_ns") || (plan_type == "model_we") || (plan_type == "model_sn")){
 		try{
 		// Self note: When transforming from one thing that already exists to something else, 
 		// it is not necessary to make a broadcaster node. Just use the existing links.
 		listener.lookupTransform("base", "dummy_link_ew",  
 								ros::Time(0), transform);
+		}
+		catch (tf::TransformException ex){
+		ROS_ERROR("%s",ex.what());
+		ros::Duration(1.0).sleep();
+		}
+	} else if (plan_type == "train"){
+		try{
+		// Self note: When transforming from one thing that already exists to something else, 
+		// it is not necessary to make a broadcaster node. Just use the existing links.
+		listener.lookupTransform("base", "cube_training",  
+								ros::Time(0), transform_cube);
 		}
 		catch (tf::TransformException ex){
 		ROS_ERROR("%s",ex.what());
@@ -183,7 +201,7 @@ int main(int argc, char** argv){
 	if (robot_received && !robot_recorded){
 		initial = robot_current;
 		robot_recorded = true;
-		plan_points.push_back(initial);
+		// plan_points.push_back(initial);
 		
 		plan_point.angular.x = initial.angular.x;
 		plan_point.angular.y = initial.angular.y;
@@ -211,21 +229,21 @@ int main(int argc, char** argv){
 		tmp.x = initial.linear.x;
 		tmp.y = initial.linear.y;
 		tmp.z = initial.linear.z;
-		dbg_cloud.points.push_back(tmp);
+		// dbg_cloud.points.push_back(tmp);
 
 		// Will create plan based off an object added in gazebo. Will not work without object.
 		if (plan_type == "model_ew"){			
 			plan_point.linear.x = transform.getOrigin().x() + .015;
 			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
-			plan_points.push_back(plan_point);
+			// plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
 			tmp.z = initial.linear.z;
-			dbg_cloud.points.push_back(tmp);
+			// dbg_cloud.points.push_back(tmp);
 			
 			float tmp_off = 0.0;
-			for (int i = 0; i < 6; i++){
+			for (int i = 0; i < 7; i++){
 				plan_point.linear.x = transform.getOrigin().x() + (.015 + tmp_off);
 				plan_point.linear.y = transform.getOrigin().y();
 				plan_point.linear.z = transform.getOrigin().z() + .0025;
@@ -234,24 +252,24 @@ int main(int argc, char** argv){
 				tmp.y = plan_point.linear.y;
 				tmp.z = plan_point.linear.z;
 				dbg_cloud.points.push_back(tmp);
-				tmp_off = tmp_off - 0.006;
+				tmp_off = tmp_off - 0.005;
 			}
 
 			plan.points = plan_points;	
 			plan_created = true;
 
-		}if (plan_type == "model_ns"){			
+		}else if (plan_type == "model_ns"){			
 			plan_point.linear.x = transform.getOrigin().x();
 			plan_point.linear.y = transform.getOrigin().y() + .015;
 			plan_point.linear.z = initial.linear.z;
-			plan_points.push_back(plan_point);
+			// plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
 			tmp.z = initial.linear.z;
-			dbg_cloud.points.push_back(tmp);
+			// dbg_cloud.points.push_back(tmp);
 			
 			float tmp_off = 0.0;
-			for (int i = 0; i < 6; i++){
+			for (int i = 0; i < 7; i++){
 				plan_point.linear.x = transform.getOrigin().x();
 				plan_point.linear.y = transform.getOrigin().y() + (.015 + tmp_off);
 				plan_point.linear.z = transform.getOrigin().z() + .0025;
@@ -260,13 +278,150 @@ int main(int argc, char** argv){
 				tmp.y = plan_point.linear.y;
 				tmp.z = plan_point.linear.z;
 				dbg_cloud.points.push_back(tmp);
-				tmp_off = tmp_off - 0.006;
+				tmp_off = tmp_off - 0.005;
 			}
 
 			plan.points = plan_points;	
 			plan_created = true;
 
 		// Custom points chosen by moving the robot and copying pose.
+		} else if (plan_type == "model_we"){			
+			plan_point.linear.x = transform.getOrigin().x() + .015;
+			plan_point.linear.y = transform.getOrigin().y();
+			plan_point.linear.z = initial.linear.z;
+			// plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = initial.linear.z;
+			// dbg_cloud.points.push_back(tmp);
+			
+			float tmp_off = 0.0;
+			for (int i = 0; i < 7; i++){
+				plan_point.linear.x = transform.getOrigin().x() - (.015 + tmp_off);
+				plan_point.linear.y = transform.getOrigin().y();
+				plan_point.linear.z = transform.getOrigin().z() + .0025;
+				plan_points.push_back(plan_point);
+				tmp.x = plan_point.linear.x;
+				tmp.y = plan_point.linear.y;
+				tmp.z = plan_point.linear.z;
+				dbg_cloud.points.push_back(tmp);
+				tmp_off = tmp_off - 0.005;
+			}
+
+			plan.points = plan_points;	
+			plan_created = true;
+
+		}else if (plan_type == "model_sn"){			
+			plan_point.linear.x = transform.getOrigin().x() + .015;
+			plan_point.linear.y = transform.getOrigin().y();
+			plan_point.linear.z = initial.linear.z;
+			// plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = initial.linear.z;
+			// dbg_cloud.points.push_back(tmp);
+			
+			float tmp_off = 0.0;
+			for (int i = 0; i < 7; i++){
+				plan_point.linear.x = transform.getOrigin().x();
+				plan_point.linear.y = transform.getOrigin().y() - (.015 + tmp_off);
+				plan_point.linear.z = transform.getOrigin().z() + .0025;
+				plan_points.push_back(plan_point);
+				tmp.x = plan_point.linear.x;
+				tmp.y = plan_point.linear.y;
+				tmp.z = plan_point.linear.z;
+				dbg_cloud.points.push_back(tmp);
+				tmp_off = tmp_off - 0.005;
+			}
+
+			plan.points = plan_points;	
+			plan_created = true;
+
+		}else if (plan_type == "train"){			
+			plan_point.linear.x = transform_cube.getOrigin().x();
+			plan_point.linear.y = transform_cube.getOrigin().y();
+			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			plan_point.linear.x = transform_cube.getOrigin().x() + cube_length;
+			plan_point.linear.y = transform_cube.getOrigin().y() + cube_length;
+			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			plan_point.linear.x = transform_cube.getOrigin().x() + cube_length;
+			plan_point.linear.y = transform_cube.getOrigin().y() - cube_length;
+			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			plan_point.linear.x = transform_cube.getOrigin().x() - cube_length;
+			plan_point.linear.y = transform_cube.getOrigin().y() - cube_length;
+			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			plan_point.linear.x = transform_cube.getOrigin().x() - cube_length;
+			plan_point.linear.y = transform_cube.getOrigin().y() + cube_length;
+			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			plan_point.linear.x = transform_cube.getOrigin().x() - cylinder_length;
+			plan_point.linear.y = transform_cube.getOrigin().y();
+			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			float tmp_pi = 0;
+
+			for (int i = 0; i < 12; i++){
+				plan_point.linear.x = transform_cube.getOrigin().x() - cylinder_length + sin(tmp_pi) * 0.01;
+				plan_point.linear.y = transform_cube.getOrigin().y() + cos(tmp_pi) * 0.01;
+				plan_point.linear.z = transform_cube.getOrigin().z() + .005;
+				plan_points.push_back(plan_point);
+				tmp.x = plan_point.linear.x;
+				tmp.y = plan_point.linear.y;
+				tmp.z = plan_point.linear.z;
+				dbg_cloud.points.push_back(tmp);
+				tmp_pi = tmp_pi + PI/6;
+			}
+
+			// for (int i = 0; i < 7; i++){
+			// 	plan_point.linear.x = transform.getOrigin().x() - .025;
+			// 	plan_point.linear.y = transform.getOrigin().y();
+			// 	plan_point.linear.z = transform.getOrigin().z() + .005;
+			// 	plan_points.push_back(plan_point);
+			// 	tmp.x = plan_point.linear.x;
+			// 	tmp.y = plan_point.linear.y;
+			// 	tmp.z = plan_point.linear.z;
+			// 	dbg_cloud.points.push_back(tmp);
+			// 	tmp_off = tmp_off - 0.006;
+			// }
+			
+
+			plan.points = plan_points;	
+			plan_created = true;
+
 		}else if (plan_type == "coded"){
 			plan_point.linear.x = 0.0461;
 			plan_point.linear.y = -0.574775;

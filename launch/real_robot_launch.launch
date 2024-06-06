@@ -4,7 +4,7 @@
 		<param name="sim" value="false"/>	
 	</node>
 	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" >
-		<param name="plan_type" value="planner"/>
+		<param name="plan_type" value="clicked"/>
 	</node>
 	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
@@ -16,7 +16,7 @@
 	<node pkg="surgery_sim" type="switch_node" name="switch_node" />
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
 	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
-		<param name="source" value="plan"/>
+		<param name="source" value="click"/>
 		<param name="mode" value="crop"/>
 	</node>
 

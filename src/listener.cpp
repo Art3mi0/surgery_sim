@@ -118,7 +118,7 @@ int main(int argc, char** argv){
 		// Records the initial position of the pen
 		// When troubleshooting, the first reading was 0, but the next one should be an accurate reading
 		
-		if (robot_received && publish && !frame_record){		
+		if (robot_received && !frame_record){		
 			// If the point is not re-created each loop, there will be a bug where the robot keeps moving when you do not want it to
 			geometry_msgs::Twist rob_point;
 			geometry_msgs::Twist hap_point;

@@ -359,19 +359,35 @@
 	<link name="${prefix}needle">
 		<visual>
 			<geometry>
-				<cylinder length="0.0285" radius="0.0005"/>
+				<cylinder length="0.0285" radius="0.0006"/>
 			</geometry>
 		</visual>
 		<collision>
 			<geometry>
-				<cylinder length="0.0285" radius="0.0005"/>
+				<cylinder length="0.0285" radius="0.0006"/>
+			</geometry>
+		</collision>
+	</link>
+	
+	<link name="${prefix}needle_tip">
+		<visual>
+			<geometry>
+				<cylinder length="0.005" radius="0.0005"/>
+			</geometry>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length="0.005" radius="0.0005"/>
 			</geometry>
 		</collision>
 	</link>
 	
 	<gazebo reference="${prefix}needle">
-  <material>Gazebo/Yellow</material>
+  <material>Gazebo/Green</material>
   </gazebo> 
+  <gazebo reference="${prefix}needle_tip">
+  <material>Gazebo/Black</material>
+  </gazebo>
 	
     <joint name="${prefix}flange-tool0" type="fixed">
       <!-- default toolframe: X+ left, Y+ up, Z+ front -->
@@ -387,6 +403,13 @@
       <child link="${prefix}needle"/>
     </joint>
     
+    <joint name="${prefix}needle-needle_tip" type="fixed">
+      <!-- default toolframe: X+ left, Y+ up, Z+ front -->
+      <origin xyz="0 0 0.01675" rpy="0 0 0"/>
+      <parent link="${prefix}needle"/>
+      <child link="${prefix}needle_tip"/>
+    </joint>
+    
   <link name="checkerboard_link">
     <visual>
 			<geometry>
@@ -400,14 +423,14 @@
     </inertial>
 	</link>  
 	
-	<gazebo reference="checkerboard_link">
-  <material>Gazebo/Green</material>
+	<gazebo reference="table_link">
+  <material>Gazebo/Blue</material>
   </gazebo> 
     
   <link name="table_link">
     <visual>
 			<geometry>
-				<box size=".5 .5 .01"/>
+				<box size=".3 .3 .01"/>
 			</geometry>
 			<material name="LightGrey"/>
 		</visual>
@@ -418,10 +441,22 @@
     </inertial>
 	</link>
 	
-	<link name="dummy_link_ns">
+	<link name="cube_training">
     <visual>
 			<geometry>
-				<box size="0.002 0.03 0.005"/>
+				<box size=".02 .02 .01"/>
+			</geometry>
+		</visual>
+		<inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+	</link>
+	<link name="cylinder_training">
+    <visual>
+			<geometry>
+				<cylinder length="0.01" radius="0.01"/>
 			</geometry>
 		</visual>
 		<inertial>
@@ -431,25 +466,11 @@
     </inertial>
 	</link>
 	
-	<link name="dummy_link_ew">
-    <visual>
-			<geometry>
-				<box size="0.002 0.03 0.005"/>
-			</geometry>
-		</visual>
-		<inertial>
-      <mass value="1e-5" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
-    </inertial>
-	</link>
-	
-	<gazebo reference="dummy_link_ns">
-  <material>Gazebo/Blue</material>
+	<gazebo reference="cube_training">
+  <material>Gazebo/Orange</material>
   </gazebo>
-  
-  <gazebo reference="dummy_link_ew">
-  <material>Gazebo/Blue</material>
+  <gazebo reference="cylinder_training">
+  <material>Gazebo/Indigo</material>
   </gazebo>
 	
 	<joint name="checkered_joint" type="fixed">
@@ -464,16 +485,15 @@
       <origin xyz=".38 0.02 .001" rpy="0 0 0" />
     </joint>
    
-  <joint name="dummy_ns_joint" type="fixed">
+  <joint name="cube_joint" type="fixed">
       <parent link="table_link" />
-      <child link="dummy_link_ns" />
-      <origin xyz="0 0 .005" rpy="0 0 0" />
+      <child link="cube_training" />
+      <origin xyz=".01 .0125 .01" rpy="0 0 0" />
     </joint>
-  
-  <joint name="dummy_ew_joint" type="fixed">
+  <joint name="cylinder_joint" type="fixed">
       <parent link="table_link" />
-      <child link="dummy_link_ew" />
-      <origin xyz="0 0 .005" rpy="0 0 -1.57" />
+      <child link="cylinder_training" />
+      <origin xyz=".01 -.0125 .01" rpy="0 0 0" />
     </joint>
     
   <link name="camera_user">
@@ -482,7 +502,7 @@
  	<joint name="user_joint" type="fixed">
       <parent link="checkerboard_link" />
       <child link="camera_user" />
-      <origin xyz="0.4485 0.057 0.4385" rpy="-2.366 0.014 1.537" />
+      <origin xyz="0.4485 0.025 0.090" rpy="-2.367 -0.025 1.507" />
     </joint>
  	
     <!-- Camera left -->
@@ -564,6 +584,7 @@
   </link>
   <link name="camera_link_pos_right">
   </link>
+
   
   <xacro:property name="link_name1" value="left_camera_link" />
   <xacro:property name="link_name2" value="right_camera_link" />

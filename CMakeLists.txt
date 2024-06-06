@@ -4,6 +4,8 @@ project(surgery_sim)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
+#add dynamic reconfigure api
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -25,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   image_geometry
+  dynamic_reconfigure
 )
 
 add_message_files(
@@ -45,6 +48,10 @@ generate_messages(
 	sensor_msgs
 )
 
+generate_dynamic_reconfigure_options(
+  cfg/HapConfig.cfg
+)
+
 catkin_package(
 CATKIN_DEPENDS roscpp rospy roslib std_msgs geometry_msgs tf2 tf2_ros trajectory_msgs message_runtime sensor_msgs
 )
@@ -52,15 +59,16 @@ CATKIN_DEPENDS roscpp rospy roslib std_msgs geometry_msgs tf2 tf2_ros trajectory
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake
 )
 
 find_package(PCL 1.2 REQUIRED)
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-
 add_executable(frame_tf_broadcaster src/frame_tf_broadcaster.cpp)
 target_link_libraries(frame_tf_broadcaster ${catkin_LIBRARIES})
+add_dependencies(frame_tf_broadcaster ${PROJECT_NAME}_gencfg)
 
 add_executable(listener src/listener.cpp)
 target_link_libraries(listener ${catkin_LIBRARIES})
@@ -73,6 +81,7 @@ target_link_libraries(point_counter ${catkin_LIBRARIES})
 
 add_executable(data_logger src/data_logger.cpp)
 target_link_libraries(data_logger ${catkin_LIBRARIES})
+add_dependencies(data_logger ${PROJECT_NAME}_gencfg)
 
 add_executable(switch_node src/switch_node.cpp)
 target_link_libraries(switch_node ${catkin_LIBRARIES})
@@ -97,6 +106,9 @@ target_link_libraries(sim_user_overlay ${catkin_LIBRARIES})
 
 add_executable(overlay_broadcast src/overlay_broadcast.cpp)
 target_link_libraries(overlay_broadcast ${catkin_LIBRARIES})
+
+add_executable(reset_node src/reset_node.cpp)
+target_link_libraries(reset_node ${catkin_LIBRARIES})
 
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})

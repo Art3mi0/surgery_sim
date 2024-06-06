@@ -57,7 +57,7 @@
 //*************************************************************************
 // defines
 
-#define CYCLE_TIME_IN_SECONDS                   0.03
+#define CYCLE_TIME_IN_SECONDS                   0.01 //.03 for fast
 #define NUMBER_OF_DOFS                          6
 
 
@@ -80,7 +80,7 @@ bool completed_point_received = false;
 bool reset_traj = false;
 bool start = false;
 int number_of_points = 0;
-int ctr = 1;
+int ctr = 0;
 bool use_rob_pos = false;
 bool init_again = false;
 int init_ctr = 0;
@@ -191,7 +191,7 @@ bool flag(surgery_sim::Reset::Request  &req,
   		ctr = completed_points.points.size();
 		}
   	
-  	init_again = true;
+		init_again = true;
 
   } else{
 		startup_flag = true;
@@ -301,7 +301,7 @@ int main(int argc, char * argv[])
 				initialize_plan(IP);
 				init_again = false;
 			}
-	    if (ResultValue != ReflexxesAPI::RML_FINAL_STATE_REACHED)
+	    if ((ResultValue != ReflexxesAPI::RML_FINAL_STATE_REACHED) && (ctr < number_of_points))
 	    {
 
 			// ****************************************************************

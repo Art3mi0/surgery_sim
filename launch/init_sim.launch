@@ -1,0 +1,9 @@
+<launch>
+
+	<include file="$(find omni_common)/launch/omni_state.launch" />
+	<include file="$(find ur_gazebo)/launch/ur5e_bringup.launch" />
+	<node type="rviz" name="rviz" pkg="rviz" args="-d $(find surgery_sim)/rviz/plan_test.rviz" />
+	<node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" />
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" />
+
+</launch>

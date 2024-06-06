@@ -1,0 +1,18 @@
+<launch>
+	
+	<include file="$(find omni_common)/launch/omni_state.launch" />
+
+
+</launch>
+
+<!-- 
+
+source options - "click"; "plan"; "path"
+mode options - "resize"; "resize_crop"; "crop"; "full"
+plan_type options - "coded"; "clicked"; "planner"; "model_ew"; "model_ns"; "train"
+move_scale options - any float not greater an 3.0
+<node pkg="surgery_sim" type="data_logger" name="data_logger" >
+		<param name="test_no" value="1"/>
+	</node>
+
+-->

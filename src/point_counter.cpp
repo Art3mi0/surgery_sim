@@ -21,7 +21,7 @@ bool robot_received = false;
 bool complete_flag = true;
 bool plan_received = false;
 
-float offset = .005;
+float offset = .001;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
