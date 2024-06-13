@@ -306,7 +306,7 @@ int main(int argc, char* argv[]){
     		haptic_received = false;
     		click_count ++;
     		timer.stop();
-    		timer.setPeriod(ros::Duration(.2));
+    		timer.setPeriod(ros::Duration(.1));
     		timer.start();
   		}
   		else if (left_pressed && grey_flag){
@@ -332,7 +332,7 @@ int main(int argc, char* argv[]){
     		plan_received = false;
     		click_count ++;
     		timer.stop();
-    		timer.setPeriod(ros::Duration(.5));
+    		timer.setPeriod(ros::Duration(.1));
     		timer.start(); 		
   		} else if (right_pressed){
 				stop = true;

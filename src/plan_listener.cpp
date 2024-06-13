@@ -38,7 +38,7 @@ std::string plan_type = "model"; // Options: coded; clicked; planner; model
 
 bool custom_plan = true;
 bool hap_flag;
-float offset = .001;
+float offset = .0015;
 
 void filtered_callback(const sensor_msgs::PointCloud2 & _data){   
      pcl::fromROSMsg(_data, filtered_path);

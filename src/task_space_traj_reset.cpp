@@ -85,8 +85,8 @@ bool use_rob_pos = false;
 bool init_again = false;
 int init_ctr = 0;
 
-bool test_flag = true;
 bool startup_flag = false; // If the autonomous mode is chosen first, this will prevent the the ctr from starting at 0
+bool plan_flag = true;
 
 geometry_msgs::Twist rob_pos;
 surgery_sim::Plan completed_points;
@@ -106,7 +106,10 @@ void get_plan(const surgery_sim::Plan & _data){
 	plan = _data;
 	plan_available = true;
 	number_of_points = plan.points.size();
-	std::cout << "received a plan with " << number_of_points << " points"<< std::endl;
+	if (plan_flag){
+		std::cout << "received a plan with " << number_of_points << " points"<< std::endl;
+		plan_flag = false;
+	}
 }
 
 
@@ -186,6 +189,7 @@ void initialize_plan(RMLPositionInputParameters  *_IP){
 bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
   if (req.plan_start){
+		control_mode = 0;
   	start = true;
 		if (startup_flag){
   		ctr = completed_points.points.size();
@@ -194,19 +198,20 @@ bool flag(surgery_sim::Reset::Request  &req,
 		init_again = true;
 
   } else{
+		control_mode = 1;
 		startup_flag = true;
   	start = false;
   	use_rob_pos = true;
   }
-	if (req.plan_flag){
-		reset_traj = false;
-		control_mode = 1;
-		ROS_INFO("request: do not reset");
-	} else{
-		control_mode = 0;
-		reset_traj = true;
-		ROS_INFO("request: reset");
-	}
+	// if (req.plan_flag){
+	// 	reset_traj = false;
+	// 	control_mode = 1;
+	// 	ROS_INFO("request: do not reset");
+	// } else{
+	// 	control_mode = 0;
+	// 	reset_traj = true;
+	// 	ROS_INFO("request: reset");
+	// }
   //ROS_INFO("request: flag=%s", (bool)req.flag ? "true" : "false");
   //ROS_INFO("sending back response: [%s]", (bool)res.out ? "true" : "false");
   return true;
@@ -292,10 +297,6 @@ int main(int argc, char * argv[])
     	while (!start){
 				loop_rate.sleep();
 				ros::spinOnce();
-			}
-			if (test_flag){
-				//initialize_plan(IP);
-				test_flag = false;
 			}
 			if (init_again){
 				initialize_plan(IP);

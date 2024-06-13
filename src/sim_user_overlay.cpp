@@ -14,6 +14,7 @@
 #include <surgery_sim/Reset.h>
 #include <surgery_sim/Plan.h>
 #include <math.h>
+#include <string>
 
 static const int RADIUS = 7;
 int text_size = 3;
@@ -170,6 +171,7 @@ int main(int argc, char** argv)
   ros::Time start_time;
   ros::Duration delta_time;
   float tmp_time;
+  std::string time_str;
 
   tf::TransformListener listener;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_l;
@@ -325,8 +327,10 @@ int main(int argc, char** argv)
             delta_time = ros::Time::now() - start_time;
           }
           tmp_time = delta_time.sec + delta_time.nsec * pow(10, -9);
+          time_str = std::to_string(tmp_time);
+          time_str.resize(time_str.size()-5);
           cv::putText(cv_ptr_l->image, 
-          std::to_string(tmp_time),
+          time_str + "s",
           cv::Point((crop.width / .88), crop.height * 1.21), 
           cv::FONT_HERSHEY_DUPLEX,
           text_size * 0.35, 

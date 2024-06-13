@@ -6,6 +6,7 @@
 #include <geometry_msgs/PointStamped.h>
 #include <surgery_sim/PedalEvent.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl/io/pcd_io.h>
 #include <surgery_sim/Plan.h>
@@ -16,12 +17,15 @@
 
 
 geometry_msgs::Twist pose_current;
+geometry_msgs::Twist traj_current;
 geometry_msgs::Twist haptic_pose;
 geometry_msgs::PoseStamped phantom_pos;
 geometry_msgs::PointStamped tool_point;
 geometry_msgs::PointStamped tool_point_cam;
 geometry_msgs::PointStamped hap_point;
 geometry_msgs::PointStamped hap_point_cam;
+geometry_msgs::PointStamped traj_point;
+geometry_msgs::PointStamped traj_point_cam;
 omni_msgs::OmniFeedback phantom_ff;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> cam_l_cloud;
@@ -35,6 +39,7 @@ int theta;
 
 bool mode_received = false;
 bool pose_received = false;
+bool traj_received = false;
 bool pcl_received = false;
 bool caml_received = false;
 bool camr_received = false;
@@ -56,7 +61,9 @@ void callback(surgery_sim::HapConfigConfig &config, uint32_t level) {
     config.stop = false;
     config_init = false;
   }
-  //start = config.start;
+  if (!start){
+    start = config.start;
+  }
   if (!stop){
     stop = config.stop;
   }
@@ -86,6 +93,20 @@ void pose_callback(const geometry_msgs::Twist &  _data){
   tool_point.point.z = pose_current.linear.z;
 }
 
+void traj_callback(const geometry_msgs::Twist &  _data){
+	// Read the pose of the robot
+	traj_current = _data;
+	traj_received = true;
+
+  std_msgs::Header header;
+  header.stamp = ros::Time::now();
+  header.frame_id = std::string("base");
+  traj_point.header = header;
+  traj_point.point.x = traj_current.linear.x;
+  traj_point.point.y = traj_current.linear.y;
+  traj_point.point.z = traj_current.linear.z;
+}
+
 void haptic_callback(const geometry_msgs::Twist &  _data){
 	// read the pose of the haptic device
 	haptic_pose = _data;
@@ -108,7 +129,7 @@ void pedal_callback(const surgery_sim::PedalEvent &  _data){
     pedal = 3;
     stop = true;
   } else if (_data.left_pedal == 1){
-    start = true;
+    //start = true;
     pedal = 1;
   } else if (_data.middle_pedal == 1){
     pedal = 2;
@@ -170,6 +191,7 @@ int main(int argc, char * argv[]){
   ros::Subscriber pcl_rcam_sub = nh.subscribe("/overlay_cloud_r", 1, camr_callback);
   ros::Subscriber plan_sub = nh.subscribe("/plan", 1, plan_callback);
   ros::Subscriber haptic_sub = nh.subscribe("/refhap", 1, haptic_callback);
+  ros::Subscriber traj_sub = nh.subscribe("/refplan", 1, traj_callback);
   // ros::Subscriber completed_sub = nh.subscribe("/completed_points" ,1, get_completed);
   ros::Subscriber mode_sub = nh.subscribe("/current_mode", 1, mode_callback);
   ros::Subscriber haptic_pos_sub = nh.subscribe("/phantom/phantom/pose",10, get_phantom_pos);
@@ -181,15 +203,17 @@ int main(int argc, char * argv[]){
   f = boost::bind(&callback, _1, _2);
   server.setCallback(f);
 
+  pcl::PointCloud<pcl::PointXYZ>  cloud_cam;
   std::ofstream tool_positions_file;
   std::ofstream hap_positions_file;
   tool_positions_file.open(("/home/temo/experiment_data/current_participant/"+test_no+"_poses.csv").c_str());
-  tool_positions_file << "tx,ty,tz,tr,tp,ty,tcx,tcy,tcz,hx,hy,hz,hfx,hfy,hfz,hbx,hby,hbz,hcx,hcy,hcz,t,mode" << std::endl;
+  tool_positions_file << "tx,ty,tz,tr,tp,ty,tcx,tcy,tcz,hx,hy,hz,hfx,hfy,hfz,hbx,hby,hbz,hcx,hcy,hcz,px,py,pz,pcx,pcy,pcz,t,mode" << std::endl;
 
   tf::TransformListener listener;
   ros::Time init_time;
   int error_count = 0;
   bool time_flag = true;
+  bool transformed_pcl = false;
   float count = 0.0;
   int loop_freq = 10;
   ros::Rate loop_rate(loop_freq);
@@ -197,6 +221,17 @@ int main(int argc, char * argv[]){
   while ((nh.ok()) && (!stop)){		
     tf::StampedTransform transform_caml;
     tf::StampedTransform transform_camr;
+
+    if (!transformed_pcl && pcl_received){
+      try{
+        pcl_ros::transformPointCloud("camera_user", plan_cloud, cloud_cam, listener);
+        transformed_pcl = true;
+      }
+      catch (tf::TransformException ex){
+        ROS_ERROR("%s",ex.what());
+    }
+    }
+
     try{
       // listener.lookupTransform("camera_link_pos_left", "base",  
       //                          ros::Time(0), transform_caml);
@@ -204,6 +239,7 @@ int main(int argc, char * argv[]){
       //                          ros::Time(0), transform_camr);
       listener.transformPoint("camera_user", tool_point, tool_point_cam);
       listener.transformPoint("camera_user", hap_point, hap_point_cam);
+      listener.transformPoint("camera_user", traj_point, traj_point_cam);
     }
     catch (tf::TransformException ex){
       if (error_count % 10 == 0){
@@ -213,13 +249,16 @@ int main(int argc, char * argv[]){
       error_count++;
     }
 
-    if (pcl_received && pcl_flag && caml_received && camr_received){
+    //if (pcl_received && pcl_flag && caml_received && camr_received){
+    if (pcl_received && pcl_flag && transformed_pcl){
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_base.pcd").c_str(), plan_cloud);
 	    std::cerr << "Saved " << plan_cloud.size () << " base frame data points " << std::endl;
-      pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_caml.pcd").c_str(), cam_l_cloud);
-	    std::cerr << "Saved " << cam_l_cloud.size () << " camL frame data points " << std::endl;
-      pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_camr.pcd").c_str(), cam_r_cloud);
-	    std::cerr << "Saved " << cam_r_cloud.size () << " camR frame data points " << std::endl;
+      // pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_caml.pcd").c_str(), cam_l_cloud);
+	    // std::cerr << "Saved " << cam_l_cloud.size () << " camL frame data points " << std::endl;
+      // pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_camr.pcd").c_str(), cam_r_cloud);
+	    // std::cerr << "Saved " << cam_r_cloud.size () << " camR frame data points " << std::endl;
+      pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_usercam.pcd").c_str(), cloud_cam);
+	    std::cerr << "Saved " << cloud_cam.size () << " user camera frame data points " << std::endl;
       pcl_flag = false;
     } 
     
@@ -240,6 +279,8 @@ int main(int argc, char * argv[]){
       << ","<< phantom_ff.force.x <<","<< phantom_ff.force.y<< ","<< phantom_ff.force.z << ","
       <<haptic_pose.linear.x<< ","<< haptic_pose.linear.y << ","<< haptic_pose.linear.z
       << "," << hap_point_cam.point.x<< ","<< hap_point_cam.point.y << ","<< hap_point_cam.point.z
+      << "," << traj_current.linear.x<< ","<< traj_current.linear.y << ","<< traj_current.linear.z
+      << "," << traj_point_cam.point.x<< ","<< traj_point_cam.point.y << ","<< traj_point_cam.point.z
       << ","<< count/loop_freq<< ","<< mode<<std::endl;
     } 
   

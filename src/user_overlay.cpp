@@ -12,19 +12,41 @@
 #include <tf/transform_listener.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <surgery_sim/Reset.h>
+#include <surgery_sim/Plan.h>
+#include <math.h>
+#include <string>
 
 static const int RADIUS = 7;
 int text_size = 3;
 int height;
 int width;
-std::string text = "Current Mode: Standby";
-cv::Rect crop(867, 720, 1733, 1440);
+int comp_size = 0;
+std::string text = "Standby";
+std::string next_text = "Starting In Manual";
+
+int crop_x;
+int crop_y;
+int crop_width;
+int crop_height;
+
+int comp_tmp = 0;
+int plan_tmp = 0;
+int color_fix = 0;
+
+int r = 0;
+int g = 0;
+int b = 0;
+
+int r2 = 255;
+int g2 = 255;
+int b2 = 255;
 
 cv_bridge::CvImagePtr cv_ptr_l;
 cv_bridge::CvImagePtr cv_ptr_r;
 image_geometry::PinholeCameraModel cam_model_l;
 image_geometry::PinholeCameraModel cam_model_r;
 
+bool show_next = true;
 bool flagL = false;
 bool flagR = false;
 bool pcl_received = false;
@@ -33,14 +55,44 @@ pcl::PointCloud<pcl::PointXYZ> test_cloud;
 
 bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
-  if (req.hap_start){
-  	text = "Current Mode: Manual";
+  if (req.preview){
+    if (req.manual){
+      next_text = "Starting In Manual";
+      r2 = 255;
+      g2 = 255;
+      b2 = 255;
+    } else{
+      next_text = "Starting In Autonomous";
+      r2 = 255;
+      g2 = 0;
+      b2 = 0;
+    }
+  } else if (req.hap_start){
+    show_next = false;
+  	text = "Manual";
+    r = 255;
+    g = 255;
+    b = 255;
+    comp_tmp = comp_size;
+    plan_tmp = plan_cloud.size();
   }else if (req.plan_start){
-  	text = "Current Mode: Autonomous";
+    show_next = false;
+  	text = "Autonomous";
+    r = 255;
+    g = 0;
+    b = 0;
   } else{
-    text = "current Mode: Stopped";
+    show_next = false;
+    text = "Stopped";
+    r = 255;
+    g = 0;
+    b = 0;
   }
   return true;
+}
+
+void get_completed(const surgery_sim::Plan & _data){
+  comp_size = _data.points.size();
 }
 
 void imageCbL(const sensor_msgs::ImageConstPtr& image_msg_l,
@@ -93,6 +145,8 @@ int main(int argc, char** argv)
   ros::NodeHandle home("~");
 	std::string source = "plan";
   std::string mode = "crop";
+  bool sim = true;
+	home.getParam("sim", sim); // options are: "true"; "false"
 	home.getParam("source", source); // options are: "click"; "plan"; "path"
   home.getParam("mode", mode); // options are: "resize"; "crop"; "full"
   image_transport::ImageTransport it(node);
@@ -105,9 +159,24 @@ int main(int argc, char** argv)
   } else if (source == "path"){
     subscriber_topic = "/filtered_path";
   }
+  if (!sim){
+    crop_x = 867;
+    crop_y = 720;
+    crop_width = 1733;
+    crop_height = 1440;
+  } else{
+    crop_x = 400;
+    crop_y = 550;
+    crop_width = 500;
+    crop_height = 500;
+  }
 
+  cv::Rect crop(crop_x, crop_y, crop_width, crop_height);
+
+  ros::Subscriber completed_sub = node.subscribe("/completed_points" ,1, get_completed);
   ros::Subscriber pcl_sub = node.subscribe(subscriber_topic, 1, pcl_callback); // cloud from chosen source
-  ros::Publisher pcl_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud", 1);
+  ros::Publisher pcl_l_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_l", 1);
+  ros::Publisher pcl_r_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_r", 1);
 
 // should subscribe to image_rect_color when using real cameras. Need to run image_proc for this topic
   image_transport::CameraSubscriber subL = it.subscribeCamera("/stereo/left/image_raw", 1, imageCbL);
@@ -118,17 +187,31 @@ int main(int argc, char** argv)
   sensor_msgs::ImagePtr l_img_ptr;
   sensor_msgs::ImagePtr r_img_ptr;
 
+  ros::Time start_time;
+  ros::Duration delta_time;
+  float tmp_time;
+  std::string time_str;
+
   tf::TransformListener listener;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_l;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_r;
   cv::Mat resized_down_l;
   cv::Mat resized_down_r;
   bool got_transform = false;
+  bool got_time = false;
   int loop_freq = 30;
   ros::Rate loop_rate(loop_freq);
   
   while (node.ok()){
      if ((pcl_received) && (flagL) && (flagR)){ 
+      if (text == "Manual"){
+        if ((plan_tmp != plan_cloud.size())){
+          color_fix = plan_tmp - plan_cloud.size();;
+        }
+      } else{
+        color_fix = 0;
+      }
+
       tf::StampedTransform transform;
       try
       {
@@ -157,10 +240,17 @@ int main(int argc, char** argv)
 
           // Test the unrectified and rectified points after getting a solid 
           // calibration to see if this is improves accuracy
-          cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(255,0,0), -1);
-          cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(255,0,0), -1);
 
-          pcl_pub.publish(cloud_out_l);
+          if (i == comp_size - color_fix){
+            cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(0,255,0), -1);
+            cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(0,255,0), -1);
+          } else{
+            cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(255,0,0), -1);
+            cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(255,0,0), -1);
+          }
+
+          pcl_l_pub.publish(cloud_out_l);
+          pcl_r_pub.publish(cloud_out_r);
         }
       }
       catch (tf::TransformException ex)
@@ -201,14 +291,42 @@ int main(int argc, char** argv)
         pubL.publish(l_img_ptr);
         pubR.publish(r_img_ptr);
 
-      } else if (mode == "crop") {
+      } else if (mode == "crop_resize") {
         cv::putText(cv_ptr_l->image, 
         text,
-        cv::Point((crop.width/1.3), crop.height * .6), 
+        cv::Point((crop.width) / 1.1, crop.height * .55), 
         cv::FONT_HERSHEY_DUPLEX,
-        text_size * 0.75, 
+        text_size, 
         CV_RGB(255,0,0),
         2);
+
+        if (show_next){
+          cv::putText(cv_ptr_l->image, 
+          next_text,
+          cv::Point((crop.width / 1.2), crop.height * .6), 
+          cv::FONT_HERSHEY_DUPLEX,
+          text_size * 0.75, 
+          CV_RGB(r2, g2, b2),
+        2);
+        } else{
+          if (!got_time){
+            start_time = ros::Time::now();
+            got_time = true;
+          }
+          if (text != "Stopped"){
+            delta_time = ros::Time::now() - start_time;
+          }
+          tmp_time = delta_time.sec + delta_time.nsec * pow(10, -9);
+          time_str = std::to_string(tmp_time);
+          time_str.resize(time_str.size()-5);
+          cv::putText(cv_ptr_l->image, 
+          time_str + "s",
+          cv::Point((crop.width / 1.1), crop.height * .6), 
+          cv::FONT_HERSHEY_DUPLEX,
+          text_size * 0.75, 
+          CV_RGB(255, 255, 0),
+        2);
+        }
 
         // cv::putText(cv_ptr_r->image, 
         // text,
@@ -225,6 +343,62 @@ int main(int argc, char** argv)
 
         // l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
         // r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
+
+        pubL.publish(l_img_ptr);
+        pubR.publish(r_img_ptr);
+
+      } else if (mode == "crop") {
+        cv::putText(cv_ptr_l->image, 
+        text,
+        cv::Point((crop.width / .88), crop.height * 1.15), 
+        cv::FONT_HERSHEY_DUPLEX,
+        text_size * 0.35, 
+        CV_RGB(r, g, b),
+        2);
+
+        if (show_next){
+          cv::putText(cv_ptr_l->image, 
+          next_text,
+          cv::Point((crop.width / 1), crop.height * 1.21), 
+          cv::FONT_HERSHEY_DUPLEX,
+          text_size * 0.35, 
+          CV_RGB(r2, g2, b2),
+        2);
+        } else{
+          if (!got_time){
+            start_time = ros::Time::now();
+            got_time = true;
+          }
+          if (text != "Stopped"){
+            delta_time = ros::Time::now() - start_time;
+          }
+          tmp_time = delta_time.sec + delta_time.nsec * pow(10, -9);
+          time_str = std::to_string(tmp_time);
+          time_str.resize(time_str.size()-5);
+          cv::putText(cv_ptr_l->image, 
+          time_str + "s",
+          cv::Point((crop.width / .88), crop.height * 1.21), 
+          cv::FONT_HERSHEY_DUPLEX,
+          text_size * 0.35, 
+          CV_RGB(255, 255, 0),
+        2);
+        }
+
+        // cv::putText(cv_ptr_r->image, 
+        // text,
+        // cv::Point((crop.width/2 + 280), crop.height - 220), 
+        // cv::FONT_HERSHEY_DUPLEX,
+        // text_size * 0.75, 
+        // CV_RGB(255,0,0),
+        // 2);
+
+        // cv::resize(cv_ptr_l->image(crop), resized_down_l, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
+        // cv::resize(cv_ptr_r->image(crop), resized_down_r, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
+        // l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_l).toImageMsg();
+        // r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_r).toImageMsg();
+
+        l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
+        r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
 
         pubL.publish(l_img_ptr);
         pubR.publish(r_img_ptr);
