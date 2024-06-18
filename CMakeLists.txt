@@ -110,6 +110,9 @@ target_link_libraries(overlay_broadcast ${catkin_LIBRARIES})
 add_executable(reset_node src/reset_node.cpp)
 target_link_libraries(reset_node ${catkin_LIBRARIES})
 
+add_executable(xls_csv_converter src/xls_csv_converter.cpp)
+target_link_libraries(xls_csv_converter ${catkin_LIBRARIES})
+
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})
 ##add_dependencies(reset_server surgery_sim_gencpp)
