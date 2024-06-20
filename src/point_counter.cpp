@@ -10,7 +10,8 @@
 
 
 /*
-
+This node acts as a memory for the autonomous node and user overlay. This keeps track of what points have been
+passed. The other nodes just check size, so if the plan is not followed correctly, bugs may occur
 */
 
 geometry_msgs::Twist robot_current;
@@ -105,8 +106,6 @@ int main(int argc, char** argv){
 				} else{
 					complete_flag = true;
 				}
-				// std::cout << "DELETED point "<<i+1 << std::endl;
-				// std::cout << "Current size "<<dbg_cloud.size() << std::endl;			
 			}
 		}
 	}

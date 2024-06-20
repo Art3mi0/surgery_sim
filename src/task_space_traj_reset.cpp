@@ -73,6 +73,19 @@
 //*************************************************************************
 
 
+/*
+Good luck with this. I do not remember exactly what I did to get this to work. It will stop when all points
+in the plan have been reached. It moves to the correct point in the plan after a switch based off of the data
+from the point_counter node. 
+There is one issue I could not figure out, but it can be ignored. The node will not publish data when it is 
+not in autonomous mode. This causes the data logger to constantly give an error saying unable to create 
+transform because data does not exist. It does not stop any functionality because it is in a try catch in the 
+data logger. After being in the autonomous mode once, it no longer gives that error.
+There is a single flag at line 300 that when removed should let the node constantly spit data, and
+there should not be issues with the rest of the system because the switch node will ignore it if not in the 
+correct node, but removing the flag results in the node publishing once and never again. 
+*/
+
 surgery_sim::Plan plan;
 bool plan_available = false;
 bool rob_pos_received = false;
@@ -203,17 +216,7 @@ bool flag(surgery_sim::Reset::Request  &req,
   	start = false;
   	use_rob_pos = true;
   }
-	// if (req.plan_flag){
-	// 	reset_traj = false;
-	// 	control_mode = 1;
-	// 	ROS_INFO("request: do not reset");
-	// } else{
-	// 	control_mode = 0;
-	// 	reset_traj = true;
-	// 	ROS_INFO("request: reset");
-	// }
-  //ROS_INFO("request: flag=%s", (bool)req.flag ? "true" : "false");
-  //ROS_INFO("sending back response: [%s]", (bool)res.out ? "true" : "false");
+
   return true;
 }
 
@@ -294,7 +297,7 @@ int main(int argc, char * argv[])
     // ********************************************************************
     // Starting the control loop
     while(ros::ok()){
-    	while (!start){
+    	while (!start){ // the flag mentioned at the top
 				loop_rate.sleep();
 				ros::spinOnce();
 			}
@@ -321,17 +324,6 @@ int main(int argc, char * argv[])
 				break;
 			}
 			
-			// The client call is causing a bug. I dont know if it's just slowing it down, and that is causing it to move strangely, or if there else something else happening because it should just be calling the server and reading the response nothing else. It works like normal with the code commented out
-			// TODO: Try adding a server to this node, and make the call from the switch node
-			/*
-			if (client.call(reset)){
-    			if (reset.response.out){
-    				reset_traj = false;
-    			} else{
-    				reset_traj = true;
-    			}
-    	}
-			*/
 			// && (ctr < number_of_points) Stops after all points reached
 			// || (reset_traj) Resets after last point reached
 			if ((ResultValue == ReflexxesAPI::RML_FINAL_STATE_REACHED) && (ctr + 1 < number_of_points)){

@@ -19,7 +19,9 @@
 	<node pkg="surgery_sim" type="listener" name="listener_node" >
 		<param name="move_scale" value="0.5"/>
 	</node>
-	<node pkg="surgery_sim" type="switch_node" name="switch_node" output="screen" />
+	<node pkg="surgery_sim" type="switch_node" name="switch_node" output="screen" >
+		<param name="sim" value="$(arg is_sim)"/>
+	</node>
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
 	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
 		<param name="source" value="click"/>

@@ -7,6 +7,17 @@
 #include <surgery_sim/PedalEvent.h>
 
 
+// This node uses the PedalEvent msg type for publishing when a pedal is held. Each pedal has its own variable;
+// has a 0 when not pressed and has a 1 when pressed.
+// This was created for a savant elite2 foot pedal.
+// I do not remember what I went through to get the values I am using. The goal was to have the pedals not programmed
+// to a keyboard key, or 1 key that would have zero impact, but I was unable to read from the event files a 
+// unique identifier for each pedal press. I may have overlooked something. As a result, I bound the keys shift, ctrl, and alt
+// because these seemed the least troubling. I found the key unique value through using a linux command on the event7
+// file and using a value that popped up when pressed.
+// Requires doing, sudo chmod 777 /dev/input/event7
+// if the loop_freq is too low, it will not update correctly if a pedal is held
+
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "pedal_controller");

@@ -16,6 +16,29 @@
 #include <math.h>
 #include <string>
 
+
+/*
+This node subscribes to the image_raw topics of the cameras and modifies the images. It can resize, crop, resize
+and crop, or display the full image.
+When publishing the image, be wary of the resulting MP. It can't be greater than your ethernet transfer speed or
+else there will be a larger delay between images in the other computer/device.
+We use the exact same cameras, so we do not have to worry about capture rates and syncing the images. The images
+we recieve are published at a rate of 40hz, so publishing at 30hz is able to remain consistant.
+The images have text at the top stating the current mode, what the starting mode will be, a timer, and projects
+points from a poincloud. When the experiment starts, the starting mode text is replaced with a timer.
+The pcl comes form the plan listener. This node subscribes to the point counter node so that it can color the
+correct target marker differently.
+
+Currently the scales are for specific parameters. The view for the resized and cropped function has only been 
+made to look good with the real robot, and the crop function has only been made to look good with the simulator.
+Images will look off with anyother combination. The projection should be fine for any case.
+
+We only display the text on one view because it did not look good during development on both views. I don't 
+remeber what specifically was wrong with it. Also, I believe the text would look better if it was positioned
+at the bottom of the screen. At the top, the images start looking a bit off, but they remain consistantly good
+at the bottom.
+*/
+
 static const int RADIUS = 7;
 int text_size = 3;
 int height;
@@ -53,6 +76,7 @@ bool pcl_received = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
 
+// when the mode switches, the text and text color will also change
 bool flag(surgery_sim::Reset::Request  &req,
          surgery_sim::Reset::Response &res){
   if (req.preview){
@@ -148,7 +172,7 @@ int main(int argc, char** argv)
   bool sim = true;
 	home.getParam("sim", sim); // options are: "true"; "false"
 	home.getParam("source", source); // options are: "click"; "plan"; "path"
-  home.getParam("mode", mode); // options are: "resize"; "crop"; "full"
+  home.getParam("mode", mode); // options are: "resize"; "crop"; "full"; "crop_resize"
   image_transport::ImageTransport it(node);
 
   ros::ServiceServer service = node.advertiseService("overlay_server", flag);
@@ -215,10 +239,6 @@ int main(int argc, char** argv)
       tf::StampedTransform transform;
       try
       {
-        // listener.lookupTransform("base", "fk_tooltip",  
-				// 				ros::Time(0), transform);
-        // test_cloud.points.clear();
-
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
         pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
         got_transform = true;
@@ -231,15 +251,10 @@ int main(int argc, char** argv)
           cv::Point2d test2;
           uv_l = cam_model_l.project3dToPixel(pt_cv_l);
           uv_r = cam_model_r.project3dToPixel(pt_cv_r);
+          // I'm pretty sure the points are projected to a rectified image, and unrectifying the points improve
+          // precision of points
           test1 = cam_model_l.unrectifyPoint(uv_l);
           test2 = cam_model_r.unrectifyPoint(uv_r);
-
-          // uv_l = cam_model_l.unrectifyPoint(uv_l);
-          // std::cout<<cloud_out_l.points.size()<< std::endl;
-
-
-          // Test the unrectified and rectified points after getting a solid 
-          // calibration to see if this is improves accuracy
 
           if (i == comp_size - color_fix){
             cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(0,255,0), -1);
@@ -261,7 +276,7 @@ int main(int argc, char** argv)
     }
 
     if ((flagL) && (flagR) && (got_transform)){
-      // set mode at the top of the program
+      // set mode at the top of the program or in the launch file
       if (mode == "resize"){
         cv::resize(cv_ptr_l->image, resized_down_l, cv::Size(width*.3, height*.3), CV_INTER_LINEAR);
         cv::resize(cv_ptr_r->image, resized_down_r, cv::Size(width*.3, height*.3), CV_INTER_LINEAR);
@@ -273,17 +288,6 @@ int main(int argc, char** argv)
         text_size * 0.5, 
         CV_RGB(255,0,0),
         2);
-
-        // Don't need both overlays to display text. Result is blurry when at the edge. Would need to
-        // find corresponding pixel locations between the views and make the text origin there for 
-        // each view to create 3d text I believe.
-        // cv::putText(resized_down_r, 
-        // text,
-        // cv::Point((resized_down_r.cols/2) - 280, 50), 
-        // cv::FONT_HERSHEY_DUPLEX,
-        // text_size * 0.5, 
-        // CV_RGB(255,0,0),
-        // 2);
 
         l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_l).toImageMsg();
         r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_r).toImageMsg();
@@ -328,21 +332,10 @@ int main(int argc, char** argv)
         2);
         }
 
-        // cv::putText(cv_ptr_r->image, 
-        // text,
-        // cv::Point((crop.width/2 + 280), crop.height - 220), 
-        // cv::FONT_HERSHEY_DUPLEX,
-        // text_size * 0.75, 
-        // CV_RGB(255,0,0),
-        // 2);
-
         cv::resize(cv_ptr_l->image(crop), resized_down_l, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
         cv::resize(cv_ptr_r->image(crop), resized_down_r, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
         l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_l).toImageMsg();
         r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_r).toImageMsg();
-
-        // l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
-        // r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
 
         pubL.publish(l_img_ptr);
         pubR.publish(r_img_ptr);
@@ -384,26 +377,13 @@ int main(int argc, char** argv)
         2);
         }
 
-        // cv::putText(cv_ptr_r->image, 
-        // text,
-        // cv::Point((crop.width/2 + 280), crop.height - 220), 
-        // cv::FONT_HERSHEY_DUPLEX,
-        // text_size * 0.75, 
-        // CV_RGB(255,0,0),
-        // 2);
-
-        // cv::resize(cv_ptr_l->image(crop), resized_down_l, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
-        // cv::resize(cv_ptr_r->image(crop), resized_down_r, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
-        // l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_l).toImageMsg();
-        // r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_down_r).toImageMsg();
-
         l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();
         r_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_r->image(crop)).toImageMsg();
 
         pubL.publish(l_img_ptr);
         pubR.publish(r_img_ptr);
 
-      } else{
+      } else{   // Full size
         cv::putText(cv_ptr_l->image, 
         text,
         cv::Point((800/6), 800 * .07), 
@@ -411,14 +391,6 @@ int main(int argc, char** argv)
         text_size * .5, 
         CV_RGB(255,0,0),
         3);
-
-        // cv::putText(cv_ptr_r->image, 
-        // text,
-        // cv::Point((width/2) - 800, 130), 
-        // cv::FONT_HERSHEY_DUPLEX,
-        // text_size * 1.5, 
-        // CV_RGB(255,0,0),
-        // 3);
 
         pubL.publish(cv_ptr_l->toImageMsg());
         pubR.publish(cv_ptr_r->toImageMsg());

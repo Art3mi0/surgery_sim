@@ -1,5 +1,5 @@
 <launch>
-	<arg name="px_x" value="p6_train_1" />
+	<arg name="px_x" value="p8_train_1" />
 	<arg name="is_sim" value="true" />
 
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" >
@@ -9,7 +9,7 @@
 		<param name="test_no" value="$(arg px_x)"/>
 	</node>
 	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" >
-		<param name="plan_type" value="train"/>
+		<param name="plan_type" value="model_ns"/>
 	</node>
 	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
@@ -18,7 +18,9 @@
 	<node pkg="surgery_sim" type="listener" name="listener_node" >
 		<param name="move_scale" value="0.5"/>
 	</node>
-	<node pkg="surgery_sim" type="switch_node" name="switch_node" output="screen" />
+	<node pkg="surgery_sim" type="switch_node" name="switch_node" output="screen" >
+		<param name="sim" value="$(arg is_sim)"/>
+	</node>
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
 	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
 		<param name="source" value="plan"/>
@@ -31,7 +33,7 @@
 <!-- 
 
 source options - "click"; "plan"; "path"
-mode options - "resize"; "resize_crop"; "crop"; "full"
+mode options - "resize"; "crop_resize"; "crop"; "full"
 plan_type options - "coded"; "clicked"; "planner"; "train"; "model_ew"; "model_ns"; "model_we"; "model_sn"
 move_scale options - any float not greater an 3.0
 <node pkg="surgery_sim" type="data_logger" name="data_logger" >

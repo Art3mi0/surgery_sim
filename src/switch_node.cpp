@@ -8,6 +8,11 @@
 #include <omni_msgs/OmniFeedback.h>
 #include <std_msgs/Int32.h>
 
+/*
+This node sends robot position data to the ur5e_controller node depending on the current mode. It also handles
+force feedback for the haptic device. Switching is handled with a serviceClient instead of several flag topics.
+*/
+
 geometry_msgs::Twist plan_point;
 geometry_msgs::Twist haptic_point;
 geometry_msgs::Twist robot_point;
@@ -28,14 +33,6 @@ bool white_press;
 bool grey_press;
 int click_count = 0;
 
-// real robot box
-// float x_max = 0.09;
-// float x_min = -0.15;
-// float y_max = -0.38;
-// float y_min = -0.7;
-// float z_max = 0.35;
-// float z_min = 0.035;
-
 // simulation box
 float x_max = 1;
 float x_min = -1;
@@ -45,7 +42,7 @@ float z_max = 1;
 float z_min = 0;
 
 void pedal_callback(const surgery_sim::PedalEvent &  _data){
-	// read the pedal input
+	// read the pedal input. Only reads unput when pressed once, so if held, it will not continue reading input.
 	if (_data.left_pedal == 1){
 		if (!held){
 			left_pressed = true;
@@ -101,6 +98,7 @@ void get_phantom_pos(const geometry_msgs::PoseStamped & _data){
 	h_pose_received = true;
 }
 
+// method for checking if target position is within the bounding box. Sets position to bounding box values if too large
 void check_box(const geometry_msgs::Twist point){
 	if ((point.linear.x <= x_max) && (point.linear.x >= x_min)) {
 		final_point.linear.x = point.linear.x;
@@ -131,7 +129,7 @@ void check_box(const geometry_msgs::Twist point){
 	final_point.angular.z = point.angular.z;
 }
 
-// This is for remebering the orignial position at lines 208-210 to avoid kicks
+// This is for remebering the orignial position at lines 268-270 to avoid kicks
 double origin_x = -0.007;
 double origin_y = -.02;
 double origin_z = 0.04;
@@ -140,8 +138,6 @@ double origin_z = 0.04;
 double x_d = origin_x;
 double y_d = origin_y;
 double z_d = origin_z;
-
-// ry = hx divide r by 3 rz = hz r/3 -rx=hy
 
 // proportional and derivate control gains for the x,y,z axis of the haptic device when tracking a certain reference position of the robot or centering them
 double kp_x = 25.0;
@@ -176,13 +172,16 @@ void calc_center_force(void){
 	centering_force.force.x = (kp_x*e_x + kd_x*de_x)*(1-tau) + tau*centering_force_prev.force.x;
 	centering_force.force.y = (kp_y*e_y + kd_y*de_y)*(1-tau) + tau*centering_force_prev.force.y;
   centering_force.force.z = (kp_z*e_z + kd_z*de_z)*(1-tau) + tau*centering_force_prev.force.z + 0.2;//the last component is for the effect hand weight
-	// reduce the kicks by resetting th force feedbacks when the reference changes
+	// reduce the kicks by resetting the force feedbacks when the reference changes
  	e_x_prev = e_x;
 	e_y_prev = e_y;
 	e_z_prev = e_z;
 	centering_force_prev = centering_force;
 }
 
+// This method was originally created for waiting while the arm retracts when swapping from autonomous to manual
+// Might help reduce unwanted kicks at switch. Don't know if without timer, there won't be kicks. There is a chance
+// I coded it well enough to switch without the need of a timer.
 void timer_callback(const ros::TimerEvent& event){
 	if (white_press){
 		timer_white = true;
@@ -200,6 +199,10 @@ void update_force(double x, double y, double z){
 int main(int argc, char* argv[]){
   ros::init(argc, argv, "switch_node");
   ros::NodeHandle node;
+
+	ros::NodeHandle home("~");
+  bool sim = true;
+	home.getParam("sim", sim); // options are: "true"; "false"
   
   // initializing server interaction
   ros::ServiceClient traj_client = node.serviceClient<surgery_sim::Reset>("reset");
@@ -209,6 +212,7 @@ int main(int argc, char* argv[]){
   ros::ServiceClient overlay_client = node.serviceClient<surgery_sim::Reset>("overlay_server");
   surgery_sim::Reset reset;
   
+	// timer creation
   ros::Timer timer = node.createTimer(ros::Duration(1), timer_callback, true);
  
 	// subscriber for reading haptic device pedal input
@@ -231,7 +235,6 @@ int main(int argc, char* argv[]){
   bool grey_flag = true;
 	bool stop = false;
   bool robot_flag = true;
-
 	std_msgs::Int32 current_mode;
 	current_mode.data = 1; // 0 = autonomous; 1 = manual
   
@@ -240,6 +243,16 @@ int main(int argc, char* argv[]){
 	double rz;
   
   geometry_msgs::Twist robot_initial;
+
+	if (sim){
+		// real robot box
+		x_max = 0.09;
+		x_min = -0.15;
+		y_max = -0.38;
+		y_min = -0.7;
+		z_max = 0.35;
+		z_min = 0.035;
+	}
   
   ros::Rate rate(10.0);
   while (node.ok()){
@@ -248,6 +261,9 @@ int main(int argc, char* argv[]){
 				robot_initial = robot_point;
 				robot_flag = false;
 			}else{
+				// While in manual mode, the force updates to where the pen already is, essentially makes it so no force exists
+				// unless the user moves faster than the loop frequency
+				// click count flag is for when the robot is first initialized
 				if ((!white_flag) || (click_count == 0)){
 					rx = 4 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
 					ry = 4 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
@@ -262,9 +278,16 @@ int main(int argc, char* argv[]){
 			}
   	}
   	
-  	//left-white middle-grey
-  	//Left pedal-a	Middle pedal-b Right pedal-c
+  	// white flag for autonomous
+		// grey falg for manual
+		// might have been a little excessive with flags, but then again, maybe it was the perfect amount
   	if (pedal_received){
+			/*
+			The experiment will not start until the left most pedal is pressed. In the meantime, the mode that the 
+			experiment starts with can be determined with the middle pedal. Could also make this an rqt_reconfigure thing
+			or a argument from the launch file
+			click_count is raised by the press of the left pedal
+			*/
 			if ((middle_pressed) && (click_count == 0)){
 				reset.request.preview = true;
 				if (grey_flag){
@@ -280,6 +303,11 @@ int main(int argc, char* argv[]){
 				}
 				overlay_client.call(reset);
 			}
+
+			/*
+			when a the left pedal is pressed, it flips the white and grey flags, and sends service calls to the appropriate
+			nodes with the updated flags
+			*/
   		if (left_pressed && white_flag){
   			white_flag = false;
   			grey_flag = true;
@@ -341,6 +369,8 @@ int main(int argc, char* argv[]){
 				overlay_client.call(reset);
 			}
   			
+			// once the node has received points from the correct topics, and the correct flags are flipped, it 
+			// publishes to the ur5e_controller
   		if (timer_white && plan_received && !stop && (click_count > 0)){
 				check_box(plan_point);
 				pub_robot.publish(final_point);
@@ -349,20 +379,12 @@ int main(int argc, char* argv[]){
 				pub_robot.publish(final_point);
 			}
 		}
+
+		// publishes force
 		if (h_pose_received && robot_received & !stop){
 			update_force(rx, ry, rz);
 			calc_center_force();
-			//if (!white_flag){
 			force_pub.publish(centering_force);
-			// } else{
-			// 	centering_force_prev = centering_force_reset;
-			// 	e_x_prev = 0.0;
-			// 	e_y_prev = 0.0;
-			// 	e_z_prev = 0.0;
-			// }
-			/*
-			ROS_INFO("Differences: x:%f y:%f z:%f", phantom_pos.pose.position.x - ry/3, phantom_pos.pose.position.y - -rx, phantom_pos.pose.position.z - rz/3);
-		}*/
 		}
 
 		pub_mode.publish(current_mode);
@@ -372,9 +394,3 @@ int main(int argc, char* argv[]){
   }
   return 0;
 };
-/*
-reset.request.flag = true;
-  			if (client.call(reset))
-  			{
-    			ROS_INFO("out: %s", (bool)reset.response.out ? "true" : "false");
-  			} */

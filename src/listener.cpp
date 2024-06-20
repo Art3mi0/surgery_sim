@@ -4,6 +4,13 @@
 #include <geometry_msgs/PointStamped.h>
 #include <surgery_sim/Reset.h>
 
+
+// This node is responsible for haptic movement
+// This node uses the dynamic haptic frame and creates a twist object that is sent to the switch node
+// Saves the origin of the frame and robot position when switched to manual, takes the difference of the 
+// current and original haptic position, applies a scalar and a deadzone, and adds the value to the recorded 
+// initial robot position
+
 geometry_msgs::Twist robot_current;
 bool robot_received = false;
 bool robot_record = false;
@@ -72,7 +79,6 @@ int main(int argc, char** argv){
   
   // Initiating variables
   geometry_msgs::Twist initial;
-  //geometry_msgs::PointStamped point;
   int seq = 0;
   float x;
   float y;
@@ -115,42 +121,23 @@ int main(int argc, char** argv){
 			//std::cout << initial;
 		}
 		
-		// Records the initial position of the pen
-		// When troubleshooting, the first reading was 0, but the next one should be an accurate reading
-		
 		if (robot_received && !frame_record){		
 			// If the point is not re-created each loop, there will be a bug where the robot keeps moving when you do not want it to
 			geometry_msgs::Twist rob_point;
-			geometry_msgs::Twist hap_point;
 			tran_x = transform.getOrigin().x() - x;
 			tran_y = transform.getOrigin().y() - y;
 			tran_z = transform.getOrigin().z() - z;
-
-			hap_point.linear.x = tran_x;
-			hap_point.linear.y = tran_y;
-			hap_point.linear.z = tran_z;
 			
 			// The leading int is the scalar. The larger the number, the more the robot will move
 			// The initial pen position is saved and subtracted from the current, so new movements of 
 			// the pen will move the robot accordingly by being added to the robot's starting position 
-			// which is saved. This is to allow the user to choose a comfortable starting position for 
-			// the pen in the real world	
+			// which is saved.
 			rob_point.linear.x = move_scale *dead_zone(tran_x) + initial.linear.x;
 			rob_point.linear.y = move_scale *dead_zone(tran_y) + initial.linear.y;
 			rob_point.linear.z = move_scale *dead_zone(tran_z) + initial.linear.z + retract_z;
 			rob_point.angular.x = initial.angular.x;
 			rob_point.angular.y = initial.angular.y;
 			rob_point.angular.z = initial.angular.z;
-			pub_test_hap.publish(hap_point);
-	    
-			// if (retract){
-			// 	retract_z = (.5* ((initial.linear.z + retract_z) - robot_current.linear.z)) + robot_current.linear.z;
-			// 	rob_point.linear.z = retract_z;
-			// 	if (robot_current.linear.z >= initial.linear.z + (retract_z - .01)){
-			// 		retract = false;
-			// 		ROS_INFO("Retracting Complete");
-			// 	}
-			// }
 			
 			pub_robot.publish(rob_point);
 	  

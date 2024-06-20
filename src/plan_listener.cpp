@@ -15,7 +15,15 @@
 #define PI 3.14159265
 
 /*
+This node creates a plan that will be sent to the task_space_traj_reset node. The different types of plans are
+a hard coded one, 5 based off of models, and 1 based off a path from the surgical path planning package. For
+the path from the path planning, you would run the node from that package, create a path using the pen, then
+when content with the path you hit the right pedal and this node makes a plan. Path planning functionality
+may be broken.
 
+After creating a plan, this node will handle removing points from the overlay. It can do this because it also 
+sends a pointcloud, so when the tool gets close enough to a point, the point in the pcl gets removed. It refreshes
+the pcl when it swaps to autonmous. It does not remove points when in autonomous.
 */
 
 geometry_msgs::Twist robot_current;
@@ -79,6 +87,9 @@ bool calc_diff(float num1, float num2){
 		return false;
 }
 
+/*
+This method is called when a mode swap occurs. This refreshes the pcl.
+*/
 void update_dbg(){
 	pcl::PointCloud<pcl::PointXYZI> fresh_dbg_cloud;
 	dbg_cloud.points.clear();
@@ -90,8 +101,6 @@ void update_dbg(){
 		tmp.y = plan_points[i].linear.y;
 		tmp.z = plan_points[i].linear.z;
 		fresh_dbg_cloud.points.push_back(tmp);
-		// std::cout << "Updated point "<<i+1 << std::endl;
-		// std::cout << "Current size "<<fresh_dbg_cloud.size() << std::endl;
 	}
 	dbg_cloud = fresh_dbg_cloud;
 }
@@ -131,8 +140,9 @@ int main(int argc, char** argv){
   // Publisher for the RViz visual
   ros::Publisher pub_point= node.advertise<geometry_msgs::PointStamped>( "/haptic_point", 1 );
   ros::Publisher dbg_traj_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("plancloud",1);
-	// subscriber for readingpedal input
+	// subscriber for reading pedal input
 	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
+	// subscriber for reading pcl from path planner
 	ros::Subscriber filtered_sub = node.subscribe("/filtered_path", 1, filtered_callback);
 
   // Needed robot toolpoint when running simulation without model
@@ -150,7 +160,6 @@ int main(int argc, char** argv){
   // Initiating variables
   bool robot_recorded = false;
   geometry_msgs::Twist initial;
-  
   geometry_msgs::Twist plan_point;
 	float rob_x;
 	float rob_y;
@@ -161,11 +170,9 @@ int main(int argc, char** argv){
   int loop_freq = 10;
   ros::Rate loop_rate(loop_freq);
   while (node.ok()){
-	// tf::StampedTransform transform;
-	// tf::StampedTransform transform_cube;
 	if ((plan_type == "model_ew") || (plan_type == "model_ns") || (plan_type == "model_we") || (plan_type == "model_sn")){
 		try{
-		// Self note: When transforming from one thing that already exists to something else, 
+		// When transforming from one thing that already exists to something else, 
 		// it is not necessary to make a broadcaster node. Just use the existing links.
 		listener.lookupTransform("base", "dummy_link_ew",  
 								ros::Time(0), transform);
@@ -176,8 +183,6 @@ int main(int argc, char** argv){
 		}
 	} else if (plan_type == "train"){
 		try{
-		// Self note: When transforming from one thing that already exists to something else, 
-		// it is not necessary to make a broadcaster node. Just use the existing links.
 		listener.lookupTransform("base", "cube_training",  
 								ros::Time(0), transform_cube);
 		}
@@ -186,28 +191,18 @@ int main(int argc, char** argv){
 		ros::Duration(1.0).sleep();
 		}
 	} 
-	// else if (plan_type == "planner"){
-	// 	try{
-	// 	listener.lookupTransform("base", "camera_color_optical_frame",  
-	// 							ros::Time(0), transform);
-	// 	}
-	// 	catch (tf::TransformException ex){
-	// 	ROS_ERROR("%s",ex.what());
-	// 	ros::Duration(1.0).sleep();
-	// 	}
-	// }
 		
 	// Records the initial position of the robot once
 	if (robot_received && !robot_recorded){
 		initial = robot_current;
 		robot_recorded = true;
-		// plan_points.push_back(initial);
 		
 		plan_point.angular.x = initial.angular.x;
 		plan_point.angular.y = initial.angular.y;
 		plan_point.angular.z = initial.angular.z;
 	}
 
+	// Handles publishing current robot point for rviz visualization
 	if (robot_received){
 		robot_cloud.points.clear();
 		tmp_rob.x = robot_current.linear.x;
@@ -229,20 +224,17 @@ int main(int argc, char** argv){
 		tmp.x = initial.linear.x;
 		tmp.y = initial.linear.y;
 		tmp.z = initial.linear.z;
-		// dbg_cloud.points.push_back(tmp);
 
 		// Will create plan based off an object added in gazebo. Will not work without object.
 		if (plan_type == "model_ew"){			
 			plan_point.linear.x = transform.getOrigin().x() + .015;
 			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
-			// plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
 			tmp.z = initial.linear.z;
-			// dbg_cloud.points.push_back(tmp);
-			
 			float tmp_off = 0.0;
+
 			for (int i = 0; i < 7; i++){
 				plan_point.linear.x = transform.getOrigin().x() + (.015 + tmp_off);
 				plan_point.linear.y = transform.getOrigin().y();
@@ -262,13 +254,11 @@ int main(int argc, char** argv){
 			plan_point.linear.x = transform.getOrigin().x();
 			plan_point.linear.y = transform.getOrigin().y() + .015;
 			plan_point.linear.z = initial.linear.z;
-			// plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
-			tmp.z = initial.linear.z;
-			// dbg_cloud.points.push_back(tmp);
-			
+			tmp.z = initial.linear.z;			
 			float tmp_off = 0.0;
+
 			for (int i = 0; i < 7; i++){
 				plan_point.linear.x = transform.getOrigin().x();
 				plan_point.linear.y = transform.getOrigin().y() + (.015 + tmp_off);
@@ -284,18 +274,15 @@ int main(int argc, char** argv){
 			plan.points = plan_points;	
 			plan_created = true;
 
-		// Custom points chosen by moving the robot and copying pose.
 		} else if (plan_type == "model_we"){			
 			plan_point.linear.x = transform.getOrigin().x() + .015;
 			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
-			// plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
-			tmp.z = initial.linear.z;
-			// dbg_cloud.points.push_back(tmp);
-			
+			tmp.z = initial.linear.z;	
 			float tmp_off = 0.0;
+
 			for (int i = 0; i < 7; i++){
 				plan_point.linear.x = transform.getOrigin().x() - (.015 + tmp_off);
 				plan_point.linear.y = transform.getOrigin().y();
@@ -315,13 +302,11 @@ int main(int argc, char** argv){
 			plan_point.linear.x = transform.getOrigin().x() + .015;
 			plan_point.linear.y = transform.getOrigin().y();
 			plan_point.linear.z = initial.linear.z;
-			// plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
-			tmp.z = initial.linear.z;
-			// dbg_cloud.points.push_back(tmp);
-			
+			tmp.z = initial.linear.z;			
 			float tmp_off = 0.0;
+
 			for (int i = 0; i < 7; i++){
 				plan_point.linear.x = transform.getOrigin().x();
 				plan_point.linear.y = transform.getOrigin().y() - (.015 + tmp_off);
@@ -338,6 +323,7 @@ int main(int argc, char** argv){
 			plan_created = true;
 
 		}else if (plan_type == "train"){			
+			// Creates path around cube
 			plan_point.linear.x = transform_cube.getOrigin().x();
 			plan_point.linear.y = transform_cube.getOrigin().y();
 			plan_point.linear.z = transform_cube.getOrigin().z() + .005;
@@ -394,6 +380,7 @@ int main(int argc, char** argv){
 
 			float tmp_pi = 0;
 
+			// Creates circular path around cylinder object
 			for (int i = 0; i < 12; i++){
 				plan_point.linear.x = transform_cube.getOrigin().x() - cylinder_length + sin(tmp_pi) * 0.01;
 				plan_point.linear.y = transform_cube.getOrigin().y() + cos(tmp_pi) * 0.01;
@@ -404,20 +391,7 @@ int main(int argc, char** argv){
 				tmp.z = plan_point.linear.z;
 				dbg_cloud.points.push_back(tmp);
 				tmp_pi = tmp_pi + PI/6;
-			}
-
-			// for (int i = 0; i < 7; i++){
-			// 	plan_point.linear.x = transform.getOrigin().x() - .025;
-			// 	plan_point.linear.y = transform.getOrigin().y();
-			// 	plan_point.linear.z = transform.getOrigin().z() + .005;
-			// 	plan_points.push_back(plan_point);
-			// 	tmp.x = plan_point.linear.x;
-			// 	tmp.y = plan_point.linear.y;
-			// 	tmp.z = plan_point.linear.z;
-			// 	dbg_cloud.points.push_back(tmp);
-			// 	tmp_off = tmp_off - 0.006;
-			// }
-			
+			}			
 
 			plan.points = plan_points;	
 			plan_created = true;
@@ -454,13 +428,9 @@ int main(int argc, char** argv){
 			plan_created = true;
 		} else if ((plan_type == "planner") && (filter_received)){
 			if ((pedal_received) && (pedal_data.right_pedal == 1)){
-				// pcl::PointCloud<pcl::PointXYZ>::iterator ctr = filtered_path.begin(); 
 				pcl_ros::transformPointCloud("base", filtered_path, transformed_path, listener);
+				
 				for (int i = 0; i < transformed_path.points.size(); i++){
-					tf::Vector3 pose_in_world;
-					// convert to robot frame
-					//pose_in_world = transform(tf::Vector3(filtered_path[i].x, filtered_path[i].y, filtered_path[i].z)); 
-			
 					plan_point.linear.x = transformed_path.points[i].x;
 					plan_point.linear.y = transformed_path.points[i].y;
 					plan_point.linear.z = transformed_path.points[i].z;
@@ -476,6 +446,7 @@ int main(int argc, char** argv){
 	}
 	}
 	
+	// Only works when in manual mode. Removes points from pcl. The pcl is used by user_overlay
 	if (hap_flag){
 		rob_x = robot_current.linear.x;
 		rob_y = robot_current.linear.y;
@@ -484,9 +455,7 @@ int main(int argc, char** argv){
 			if ((calc_diff(rob_x, dbg_cloud[i].x)) && 
 			(calc_diff(rob_y, dbg_cloud[i].y)) && 
 			(calc_diff(rob_z, dbg_cloud[i].z))){
-				dbg_cloud.erase(dbg_cloud.begin() + i);	
-				// std::cout << "DELETED point "<<i+1 << std::endl;
-				// std::cout << "Current size "<<dbg_cloud.size() << std::endl;			
+				dbg_cloud.erase(dbg_cloud.begin() + i);		
 			}
 		}
 	}
@@ -494,8 +463,6 @@ int main(int argc, char** argv){
 	if (plan_created){
 		std_msgs::Header header;
 		header.stamp = ros::Time::now();
-		// When trying to tag a frame to something that used transformed data from, make sure
-		// the tagged frame is the frame the data was transformed into.
 		header.frame_id = std::string("base");
 		dbg_cloud.header = pcl_conversions::toPCL(header);
 		dbg_traj_pub.publish(dbg_cloud);

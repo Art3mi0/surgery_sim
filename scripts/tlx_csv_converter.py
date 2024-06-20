@@ -6,15 +6,15 @@
 #	line 10 - number of participants
 # line 14 - the starting participant number
 # line 18 - the number of tests
-# line 21 & 22 - in the chr() function, the starting test letter
-# lines 21 and 22 would only change if the number of tests change, and if the starting test letter is not a
+# line 21 & 22 - in the chr() function, the starting test letter (would only change if the number of tests change, and if the starting test letter is not a)
+# line 21 & 22 - the location of the files to convert and the destination of the converted files
 
 if __name__ == '__main__':	
 
 	# change this for the number of participants
-	for i in range(1):
+	for i in range(2):
 	# for some reason I could not just do str(i+1) in the long concatenation. It would run once, then give me an error despite working correctly for a single interation
-		tmpNum = i+5 # change int to match the correct starting participant number
+		tmpNum = i+6 # change int to match the correct starting participant number
 		
 		# should not be changed unless less than 12 tests want to be converted
 		for j in range(12):

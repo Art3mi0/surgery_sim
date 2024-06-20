@@ -9,6 +9,8 @@
 #include <surgery_sim/Reset.h>
 
 
+// This node is just for placing and removing points through the publish point tool in rviz
+
 geometry_msgs::Twist robot_current;
 pcl::PointCloud<pcl::PointXYZI> dbg_cloud;
 float offset = .002;

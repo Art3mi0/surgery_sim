@@ -16,6 +16,12 @@
 #include <std_msgs/Int32.h>
 
 
+// This node will log the tool coordinates, the raw haptic device coordiantes, the haptic device force feedback
+// values, the coordinates being sent to the robot from the switch node, the coordiantes in the base and user 
+// camera frames, the plan pcl in both frames, the current mode, and the time.
+// Subscribes to many topics from different nodes.
+// Must run rqt_reconfigure along with this node to control it.
+
 geometry_msgs::Twist pose_current;
 geometry_msgs::Twist traj_current;
 geometry_msgs::Twist haptic_pose;
@@ -54,8 +60,9 @@ bool start = false;
 bool config_init = true;
 bool once_flag = true;
 
-// Reuses hap config. Does not use int parameter
+// reuses hap config. Does not use int parameter
 void callback(surgery_sim::HapConfigConfig &config, uint32_t level) {
+  // makes unchecking boxes at end unnecessary
   if (config_init){
     config.start = false;
     config.stop = false;
@@ -80,7 +87,7 @@ void get_phantom_ff(const omni_msgs::OmniFeedback & _data){
 }
 
 void pose_callback(const geometry_msgs::Twist &  _data){
-	// Read the pose of the robot
+	// read the pose of the robot and saves xyz in a point object for performing tranform
 	pose_current = _data;
 	pose_received = true;
 
@@ -94,7 +101,7 @@ void pose_callback(const geometry_msgs::Twist &  _data){
 }
 
 void traj_callback(const geometry_msgs::Twist &  _data){
-	// Read the pose of the robot
+	// read the pose of the path from ttask_space_trajectory and saves xyz in a point object for performing tranform
 	traj_current = _data;
 	traj_received = true;
 
@@ -108,7 +115,7 @@ void traj_callback(const geometry_msgs::Twist &  _data){
 }
 
 void haptic_callback(const geometry_msgs::Twist &  _data){
-	// read the pose of the haptic device
+	// read the pose of the modified path of the haptic device and saves xyz in a point object for performing tranform
 	haptic_pose = _data;
 	haptic_received = true;
 
@@ -122,9 +129,7 @@ void haptic_callback(const geometry_msgs::Twist &  _data){
 }
 
 void pedal_callback(const surgery_sim::PedalEvent &  _data){
-	// Reads and saves the input of the pedal
-  // Only reads as if clicked once. Ignores held input
-  // Previously controlled start and stop of data logger
+	// a second way to stop data collection. can uncomment the one comment to also be another way to start data collection
   if (_data.right_pedal == 1){
     pedal = 3;
     stop = true;
@@ -154,20 +159,11 @@ void camr_callback(const sensor_msgs::PointCloud2 &  _data){
 }
 
 void mode_callback(const std_msgs::Int32 &  _data){
-	// read the pose of the haptic device
+	// reads the current mode from the switch node
 	mode = _data.data;
 
 	mode_received = true;
 }
-
-// void get_completed(const surgery_sim::Plan & _data){
-//   if (_data.points.size() != 0){
-//     if (_data.points.size() == plan.points.size()){
-//       stop = true;
-//     }
-//   }
-// 	completed_point_received = true;
-// }
 
 void plan_callback(const surgery_sim::Plan & _data){
   plan = _data;
@@ -180,10 +176,11 @@ int main(int argc, char * argv[]){
 	ros::NodeHandle nh;
 	ros::NodeHandle home("~");
 	
-
+  // argument from launch file
 	std::string test_no = "dbg";
 	home.getParam("test_no", test_no);
 
+  // all of the topics with data we want to log
 	ros::Subscriber pose_sub = nh.subscribe("/ur5e/toolpose",1, pose_callback);
   ros::Subscriber pedal_sub = nh.subscribe("/pedal",1, pedal_callback);
   ros::Subscriber pcl_sub = nh.subscribe("/plancloud", 1, pcl_callback);
@@ -192,11 +189,11 @@ int main(int argc, char * argv[]){
   ros::Subscriber plan_sub = nh.subscribe("/plan", 1, plan_callback);
   ros::Subscriber haptic_sub = nh.subscribe("/refhap", 1, haptic_callback);
   ros::Subscriber traj_sub = nh.subscribe("/refplan", 1, traj_callback);
-  // ros::Subscriber completed_sub = nh.subscribe("/completed_points" ,1, get_completed);
   ros::Subscriber mode_sub = nh.subscribe("/current_mode", 1, mode_callback);
   ros::Subscriber haptic_pos_sub = nh.subscribe("/phantom/phantom/pose",10, get_phantom_pos);
   ros::Subscriber haptic_ff_sub = nh.subscribe("/phantom/phantom/force_feedback",10, get_phantom_ff);
 
+  // can start and stop data logging through rqt_reconfigure
   dynamic_reconfigure::Server<surgery_sim::HapConfigConfig> server;
   dynamic_reconfigure::Server<surgery_sim::HapConfigConfig>::CallbackType f;
 
@@ -207,12 +204,11 @@ int main(int argc, char * argv[]){
   std::ofstream tool_positions_file;
   std::ofstream hap_positions_file;
   tool_positions_file.open(("/home/temo/experiment_data/current_participant/"+test_no+"_poses.csv").c_str());
+  // the first line
   tool_positions_file << "tx,ty,tz,tr,tp,ty,tcx,tcy,tcz,hx,hy,hz,hfx,hfy,hfz,hbx,hby,hbz,hcx,hcy,hcz,px,py,pz,pcx,pcy,pcz,t,mode" << std::endl;
 
   tf::TransformListener listener;
-  ros::Time init_time;
   int error_count = 0;
-  bool time_flag = true;
   bool transformed_pcl = false;
   float count = 0.0;
   int loop_freq = 10;
@@ -222,6 +218,7 @@ int main(int argc, char * argv[]){
     tf::StampedTransform transform_caml;
     tf::StampedTransform transform_camr;
 
+    // there was a bug if this was part of the other try catch statement. Seperating prevents the bug
     if (!transformed_pcl && pcl_received){
       try{
         pcl_ros::transformPointCloud("camera_user", plan_cloud, cloud_cam, listener);
@@ -232,11 +229,8 @@ int main(int argc, char * argv[]){
     }
     }
 
+    // camera user is defined in the urdf for the simulator, and it is defined in the frame publisher for the real robot
     try{
-      // listener.lookupTransform("camera_link_pos_left", "base",  
-      //                          ros::Time(0), transform_caml);
-      // listener.lookupTransform("camera_link_pos_right", "base",  
-      //                          ros::Time(0), transform_camr);
       listener.transformPoint("camera_user", tool_point, tool_point_cam);
       listener.transformPoint("camera_user", hap_point, hap_point_cam);
       listener.transformPoint("camera_user", traj_point, traj_point_cam);
@@ -244,19 +238,14 @@ int main(int argc, char * argv[]){
     catch (tf::TransformException ex){
       if (error_count % 10 == 0){
         ROS_ERROR("%s",ex.what());
-      //ros::Duration(1.0).sleep();
       }
       error_count++;
     }
 
-    //if (pcl_received && pcl_flag && caml_received && camr_received){
+    // saves two pointclouds once
     if (pcl_received && pcl_flag && transformed_pcl){
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_base.pcd").c_str(), plan_cloud);
 	    std::cerr << "Saved " << plan_cloud.size () << " base frame data points " << std::endl;
-      // pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_caml.pcd").c_str(), cam_l_cloud);
-	    // std::cerr << "Saved " << cam_l_cloud.size () << " camL frame data points " << std::endl;
-      // pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_camr.pcd").c_str(), cam_r_cloud);
-	    // std::cerr << "Saved " << cam_r_cloud.size () << " camR frame data points " << std::endl;
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_usercam.pcd").c_str(), cloud_cam);
 	    std::cerr << "Saved " << cloud_cam.size () << " user camera frame data points " << std::endl;
       pcl_flag = false;
@@ -266,10 +255,6 @@ int main(int argc, char * argv[]){
       if (once_flag){
         ROS_INFO("Logging...");
         once_flag = false;
-      }
-      if (time_flag){
-        init_time = phantom_pos.header.stamp;
-        time_flag = false;
       }
       count ++;
       tool_positions_file << pose_current.linear.x<< ","<< pose_current.linear.y << ","<< pose_current.linear.z
@@ -288,7 +273,6 @@ int main(int argc, char * argv[]){
     ros::spinOnce();
 	}
   tool_positions_file.close();
-  // hap_positions_file.close();
 	ROS_INFO("!!!!!!!Finished logging data =>>> shutting down!!!!!!!");
 	return 0;
 
