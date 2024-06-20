@@ -244,7 +244,7 @@ int main(int argc, char* argv[]){
   
   geometry_msgs::Twist robot_initial;
 
-	if (sim){
+	if (!sim){
 		// real robot box
 		x_max = 0.09;
 		x_min = -0.15;
