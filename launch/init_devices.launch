@@ -4,6 +4,12 @@
 	<include file="$(find pylon_camera)/launch/pylon_camera_node2.launch" />
 	<include file="$(find realsense2_camera)/launch/rs_rgbd.launch" />
 	<include file="$(find omni_common)/launch/omni_state.launch" />
-	<include file="$(find surgery_sim)/launch/frame_publisher.launch" />
 
 </launch>
+
+
+<!-- 
+<include file="$(find surgery_sim)/launch/frame_publisher.launch" />
+
+I think there is an issue where the camera takes too long to load and the frame get messed up. When this launch file ran with the frame publisher, it would make one fo the frames connect to itself not be connected to the main tree.
+-->

@@ -1,14 +1,12 @@
 <launch>
-	<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.06496 -0.47047 0.001 -1.5708 0.0 0.0 base checkerboard" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.05616 -0.47344 0.001 -1.5708 0.0 0.0 base checkerboard" />
 
-	<node pkg="tf2_ros" type="static_transform_publisher" name="camera1_checkerboard" args="0.447 0.019 0.440 0.672 0.637 -0.250 -0.283 checkerboard pylon_camera1" />
-	<node pkg="tf2_ros" type="static_transform_publisher" name="camera2_checkerboard" args="0.450 0.095 0.437 0.662 0.646 -0.285 -0.252 checkerboard pylon_camera2" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera1_checkerboard" args="0.446 0.019 0.440 0.672 0.637 -0.249 -0.283 checkerboard pylon_camera1" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="camera2_checkerboard" args="0.450 0.095 0.438 0.662 0.646 -0.284 -0.251 checkerboard pylon_camera2" />
 	
 	<node pkg="tf2_ros" type="static_transform_publisher" name="camera_user_checkerboard" args="0.4485 0.057 0.4385 0.667 0.6415 -0.2675 -0.2675 checkerboard camera_user" />
 	
-	<node pkg="tf2_ros" type="static_transform_publisher" name="camera_user2_checkerboard" args="0.4805 0.1315 0.418 1.5708 0.0 3.1416 checkerboard camera_user2" />
-	
-	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_optical_frame_checkerboard" args="0.445 0.050 0.347 0.659 0.645 -0.285 -0.262 checkerboard camera_color_optical_frame" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="intel_optical_frame_checkerboard" args="0.445 0.050 0.348 0.659 0.645 -0.284 -0.262 checkerboard camera_color_optical_frame" />
 	<node pkg="tf2_ros" type="static_transform_publisher" name="depth_to_color_optical_frame" args="0.000 0.000 0.000 0.500 -0.500 0.500 0.500 camera_color_optical_frame camera_aligned_depth_to_color_frame" />
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link_depth_to_color" args="-0.000 -0.015 0.000 -0.002 0.002 -0.001 1.000 camera_aligned_depth_to_color_frame camera_link" />
 	
@@ -20,7 +18,10 @@
 <!-- 
 
 Old Checkerboard robot pos:
-<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.059138 -0.47211455 0.001 -1.5708 0.0 0.0 base checkerboard" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="robot_checkerboard" args="-0.06496 -0.47047 0.001 -1.5708 0.0 0.0 base checkerboard" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="camera1_checkerboard" args="0.447 0.019 0.440 0.672 0.637 -0.250 -0.283 checkerboard pylon_camera1" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="camera2_checkerboard" args="0.450 0.095 0.437 0.662 0.646 -0.285 -0.252 checkerboard pylon_camera2" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="intel_optical_frame_checkerboard" args="0.445 0.050 0.347 0.659 0.645 -0.285 -0.262 checkerboard camera_color_optical_frame" />
 
 transform: 
       translation: 

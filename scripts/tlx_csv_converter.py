@@ -12,9 +12,9 @@
 if __name__ == '__main__':	
 
 	# change this for the number of participants
-	for i in range(2):
+	for i in range(1):
 	# for some reason I could not just do str(i+1) in the long concatenation. It would run once, then give me an error despite working correctly for a single interation
-		tmpNum = i+6 # change int to match the correct starting participant number
+		tmpNum = i+12 # change int to match the correct starting participant number
 		
 		# should not be changed unless less than 12 tests want to be converted
 		for j in range(12):

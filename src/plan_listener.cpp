@@ -29,8 +29,11 @@ the pcl when it swaps to autonmous. It does not remove points when in autonomous
 geometry_msgs::Twist robot_current;
 surgery_sim::Reset reset;
 surgery_sim::Plan plan;
+surgery_sim::Plan robot_plan;
 std::vector<geometry_msgs::Twist> plan_points;
+std::vector<geometry_msgs::Twist> robot_plan_points;
 pcl::PointCloud<pcl::PointXYZI> dbg_cloud;
+pcl::PointCloud<pcl::PointXYZI> dbg_rob_cloud;
 pcl::PointCloud<pcl::PointXYZI> robot_cloud;
 pcl::PointCloud<pcl::PointXYZ> filtered_path;
 pcl::PointCloud<pcl::PointXYZ> transformed_path;
@@ -140,6 +143,7 @@ int main(int argc, char** argv){
   // Publisher for the RViz visual
   ros::Publisher pub_point= node.advertise<geometry_msgs::PointStamped>( "/haptic_point", 1 );
   ros::Publisher dbg_traj_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("plancloud",1);
+	ros::Publisher dbg_traj_rob_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("robot_plancloud",1);
 	// subscriber for reading pedal input
 	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	// subscriber for reading pcl from path planner
@@ -149,6 +153,7 @@ int main(int argc, char** argv){
   ros::Publisher rob_point_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("robot_point",1);
   // publisher for writing the plan
 	ros::Publisher pub_plan= node.advertise<surgery_sim::Plan>( "/plan", 1);
+	ros::Publisher pub_rob_plan= node.advertise<surgery_sim::Plan>( "/robot_plan", 1);
 
   tf::TransformListener listener;
 	tf::StampedTransform transform;
@@ -397,27 +402,38 @@ int main(int argc, char** argv){
 			plan_created = true;
 
 		}else if (plan_type == "coded"){
-			plan_point.linear.x = 0.0461;
-			plan_point.linear.y = -0.574775;
-			plan_point.linear.z = 0.051236;
+			float z_offset = -.006;
+
+			plan_point.linear.x = 0.050777;
+			plan_point.linear.y = -0.58775;
+			plan_point.linear.z = 0.0378 + z_offset;
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
 			tmp.z = plan_point.linear.z;
 			dbg_cloud.points.push_back(tmp);
 
-			plan_point.linear.x = 0.0387;
-			plan_point.linear.y = -0.6211;
-			plan_point.linear.z = 0.05129;
+			plan_point.linear.x = 0.0495;
+			plan_point.linear.y = -0.594;
+			plan_point.linear.z = 0.037 + z_offset;
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
 			tmp.z = plan_point.linear.z;
 			dbg_cloud.points.push_back(tmp);
 
-			plan_point.linear.x = -0.0109;
-			plan_point.linear.y = -0.6156;
-			plan_point.linear.z = 0.05127;
+			plan_point.linear.x = 0.049;
+			plan_point.linear.y = -0.5996;
+			plan_point.linear.z = 0.037 + z_offset;
+			plan_points.push_back(plan_point);
+			tmp.x = plan_point.linear.x;
+			tmp.y = plan_point.linear.y;
+			tmp.z = plan_point.linear.z;
+			dbg_cloud.points.push_back(tmp);
+
+			plan_point.linear.x = 0.0502;
+			plan_point.linear.y = -0.605767;
+			plan_point.linear.z = 0.034 + z_offset;
 			plan_points.push_back(plan_point);
 			tmp.x = plan_point.linear.x;
 			tmp.y = plan_point.linear.y;
@@ -439,8 +455,16 @@ int main(int argc, char** argv){
 					tmp.y = plan_point.linear.y;
 					tmp.z = plan_point.linear.z;
 					dbg_cloud.points.push_back(tmp);
+					
+					plan_point.linear.z = transformed_path.points[i].z + .004;
+					robot_plan_points.push_back(plan_point);
+					tmp.x = plan_point.linear.x;
+					tmp.y = plan_point.linear.y;
+					tmp.z = plan_point.linear.z;
+					dbg_rob_cloud.points.push_back(tmp);
 				}
 				plan.points = plan_points;
+				robot_plan.points = robot_plan_points;
 				plan_created = true;
 		}
 	}
@@ -466,7 +490,13 @@ int main(int argc, char** argv){
 		header.frame_id = std::string("base");
 		dbg_cloud.header = pcl_conversions::toPCL(header);
 		dbg_traj_pub.publish(dbg_cloud);
+
+		header.stamp = ros::Time::now();
+		dbg_rob_cloud.header = pcl_conversions::toPCL(header);
+		dbg_traj_rob_pub.publish(dbg_rob_cloud);
+
 		pub_plan.publish(plan);
+		pub_rob_plan.publish(robot_plan);
 		if (call_traj){
 			traj_client.call(reset);
 			call_traj = false;

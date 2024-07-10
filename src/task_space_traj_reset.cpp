@@ -226,6 +226,15 @@ int main(int argc, char * argv[])
     ros::init(argc,argv,"task_space_traj");
     ros::NodeHandle nh_;
 
+		ros::NodeHandle home("~");
+		bool sim = true;
+		home.getParam("sim", sim); // options are: "true"; "false"
+
+		std::string subscriber_topic = "/robot_plan";
+		if (sim){
+			subscriber_topic = "/plan";
+		}
+
 		// initializing server
 		ros::ServiceServer service = nh_.advertiseService("reset", flag);
 
@@ -234,7 +243,7 @@ int main(int argc, char * argv[])
     ros::Rate loop_rate(loop_freq);
     ros::Publisher reflexxes_pub = nh_.advertise<geometry_msgs::Twist>("/refplan",1);
 
-    ros::Subscriber plan_sub = nh_.subscribe("/plan",1,get_plan);
+    ros::Subscriber plan_sub = nh_.subscribe(subscriber_topic,1,get_plan);
     ros::Subscriber pos_sub = nh_.subscribe("/ur5e/toolpose" ,1, get_pos);
 		ros::Subscriber completed_sub = nh_.subscribe("/completed_points" ,1, get_completed);
     

@@ -1,6 +1,6 @@
 <launch>
 
-	<arg name="px_x" value="pi3_train" />
+	<arg name="px_x" value="real2" />
 	<arg name="is_sim" value="false" />
 
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" >
@@ -10,11 +10,13 @@
 		<param name="test_no" value="$(arg px_x)"/>
 	</node>
 	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" >
-		<param name="plan_type" value="clicked"/>
+		<param name="plan_type" value="planner"/>
 	</node>
 	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
-	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" output="screen" />
+	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" output="screen" >
+		<param name="sim" value="$(arg is_sim)"/>
+	</node>
 	<node pkg="surgery_sim" type="frame_tf_broadcaster" name="frame_broadcast_node" />
 	<node pkg="surgery_sim" type="listener" name="listener_node" >
 		<param name="move_scale" value="0.5"/>
@@ -24,7 +26,7 @@
 	</node>
 	<node pkg="surgery_sim" type="overlay_broadcast" name="overlay_broadcast" />
 	<node pkg="surgery_sim" type="user_overlay" name="user_overlay" >
-		<param name="source" value="click"/>
+		<param name="source" value="plan"/>
 		<param name="mode" value="crop_resize"/>
 		<param name="sim" value="$(arg is_sim)"/>
 	</node>
@@ -38,5 +40,11 @@ source options - "click"; "plan"; "path"
 mode options - "resize"; "crop"; "crop_resize"; "full"
 plan_type options - "coded"; "clicked"; "planner"; "model"
 move_scale options - any float not greater an 3.0
+
+roslaunch ur_robot_driver ur5e_bringup.launch robot_ip:=192.168.56.101
+roslaunch ros_tcp_endpoint endpoint.launch tcp_ip:=192.168.56.20 tcp_port:=10000
+
+rosrun rviz rviz -d ~/catkin_ws/src/surgical_path_planning/rviz/devel_config.rviz
+roslaunch surgical_path_planning path_planning.launch
 
 -->

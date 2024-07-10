@@ -74,6 +74,7 @@ bool flagL = false;
 bool flagR = false;
 bool pcl_received = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
+pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
 
 // when the mode switches, the text and text color will also change
@@ -162,6 +163,11 @@ void pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl_received = true;
 }
 
+void robot_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
+	pcl::fromROSMsg(_data, robot_plan_cloud);
+	pcl_received = true;
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "user_overlay");
@@ -197,6 +203,8 @@ int main(int argc, char** argv)
 
   cv::Rect crop(crop_x, crop_y, crop_width, crop_height);
 
+  
+  ros::Subscriber robot_points_sub = node.subscribe("/robot_plancloud" ,1, robot_pcl_callback);
   ros::Subscriber completed_sub = node.subscribe("/completed_points" ,1, get_completed);
   ros::Subscriber pcl_sub = node.subscribe(subscriber_topic, 1, pcl_callback); // cloud from chosen source
   ros::Publisher pcl_l_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_l", 1);
@@ -219,6 +227,8 @@ int main(int argc, char** argv)
   tf::TransformListener listener;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_l;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_r;
+  pcl::PointCloud<pcl::PointXYZ>  rob_cloud_out_l;
+  pcl::PointCloud<pcl::PointXYZ>  rob_cloud_out_r;
   cv::Mat resized_down_l;
   cv::Mat resized_down_r;
   bool got_transform = false;
@@ -226,6 +236,8 @@ int main(int argc, char** argv)
   int loop_freq = 30;
   ros::Rate loop_rate(loop_freq);
   
+  // In the point projection, the points from the first pointcloud are from the surface of an object, and if it
+  // is the real robot, the second are from an offset.
   while (node.ok()){
      if ((pcl_received) && (flagL) && (flagR)){ 
       if (text == "Manual"){
@@ -241,6 +253,10 @@ int main(int argc, char** argv)
       {
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
         pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
+        if (!sim){
+          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), robot_plan_cloud, rob_cloud_out_l, listener);
+          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), robot_plan_cloud, rob_cloud_out_r, listener);
+        }
         got_transform = true;
         for (int i = 0; i < cloud_out_l.points.size(); i++){
           cv::Point3d pt_cv_l(cloud_out_l.points[i].x, cloud_out_l.points[i].y, cloud_out_l.points[i].z);
@@ -249,6 +265,7 @@ int main(int argc, char** argv)
           cv::Point2d uv_r;
           cv::Point2d test1;
           cv::Point2d test2;
+
           uv_l = cam_model_l.project3dToPixel(pt_cv_l);
           uv_r = cam_model_r.project3dToPixel(pt_cv_r);
           // I'm pretty sure the points are projected to a rectified image, and unrectifying the points improve
@@ -262,6 +279,28 @@ int main(int argc, char** argv)
           } else{
             cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(255,0,0), -1);
             cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(255,0,0), -1);
+          }
+
+          // If the real robot, it will do what it just did but with the extra pcl.
+          if (!sim){
+            cv::Point3d rob_pt_cv_l(rob_cloud_out_l.points[i].x, rob_cloud_out_l.points[i].y, rob_cloud_out_l.points[i].z);
+            cv::Point3d rob_pt_cv_r(rob_cloud_out_r.points[i].x, rob_cloud_out_r.points[i].y, rob_cloud_out_r.points[i].z);
+            cv::Point2d rob_uv_l;
+            cv::Point2d rob_uv_r;
+            cv::Point2d test3;
+            cv::Point2d test4;
+            rob_uv_l = cam_model_l.project3dToPixel(rob_pt_cv_l);
+            rob_uv_r = cam_model_r.project3dToPixel(rob_pt_cv_r);
+            test3 = cam_model_l.unrectifyPoint(rob_uv_l);
+            test4 = cam_model_r.unrectifyPoint(rob_uv_r);
+
+            if (i == comp_size - color_fix){
+              cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,255,0), -1);
+                cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,255,0), -1);
+            } else{
+            cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,0,255), -1);
+              cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,0,255), -1);
+            }
           }
 
           pcl_l_pub.publish(cloud_out_l);

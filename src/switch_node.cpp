@@ -32,6 +32,7 @@ bool update_flag;
 bool white_press;
 bool grey_press;
 int click_count = 0;
+int right_click_count = 0;
 
 // simulation box
 float x_max = 1;
@@ -60,6 +61,7 @@ void pedal_callback(const surgery_sim::PedalEvent &  _data){
 	} else if (_data.right_pedal == 1){
 		if (!held){
 			right_pressed = true;
+			right_click_count++;
 		} else{
 			right_pressed = false;
 		}
@@ -251,7 +253,7 @@ int main(int argc, char* argv[]){
 		y_max = -0.38;
 		y_min = -0.7;
 		z_max = 0.35;
-		z_min = 0.035;
+		z_min = 0.025;
 	}
   
   ros::Rate rate(10.0);
@@ -362,7 +364,7 @@ int main(int argc, char* argv[]){
     		timer.stop();
     		timer.setPeriod(ros::Duration(.1));
     		timer.start(); 		
-  		} else if (right_pressed){
+  		} else if ((right_pressed) && (right_click_count > 1)){
 				stop = true;
   			reset.request.plan_start = false;
   			reset.request.hap_start = false;

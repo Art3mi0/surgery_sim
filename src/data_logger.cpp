@@ -42,6 +42,7 @@ surgery_sim::Plan plan;
 int pedal = 0;
 int mode = 1;
 int theta;
+int click_count = 0;
 
 bool mode_received = false;
 bool pose_received = false;
@@ -59,6 +60,7 @@ bool pcl_flag = true;
 bool start = false;
 bool config_init = true;
 bool once_flag = true;
+bool held = false;
 
 // reuses hap config. Does not use int parameter
 void callback(surgery_sim::HapConfigConfig &config, uint32_t level) {
@@ -130,9 +132,16 @@ void haptic_callback(const geometry_msgs::Twist &  _data){
 
 void pedal_callback(const surgery_sim::PedalEvent &  _data){
 	// a second way to stop data collection. can uncomment the one comment to also be another way to start data collection
+  // added click count for path planner functionality. Users will press the right pedal once when confirming the plan
   if (_data.right_pedal == 1){
-    pedal = 3;
-    stop = true;
+    if (!held){
+      pedal = 3;
+      click_count++;
+      if (click_count > 1){
+        stop = true;
+      }
+      held = true;
+    }
   } else if (_data.left_pedal == 1){
     //start = true;
     pedal = 1;
@@ -140,6 +149,7 @@ void pedal_callback(const surgery_sim::PedalEvent &  _data){
     pedal = 2;
   } else{
     pedal = 0;
+    held = false;
   }
 }
 
