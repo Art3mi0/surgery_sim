@@ -61,10 +61,20 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "point_counter");
 
   ros::NodeHandle node;
+	ros::NodeHandle home("~");
+
+	bool sim = true;
+	home.getParam("sim", sim); // options are: "true"; "false"
+
+	std::string subscriber_topic = "/plan";
+
+	if (!sim){
+		subscriber_topic = "/robot_plan";
+	}
 
 	// Subscriber for reading the robot pose
 	ros::Subscriber robot_sub = node.subscribe("/ur5e/toolpose", 1, robot_callback);
-	ros::Subscriber pub_sub= node.subscribe( "/plan", 1, plan_callback);
+	ros::Subscriber pub_sub= node.subscribe( subscriber_topic, 1, plan_callback);
 
 	// publisher for writing the plan
 	ros::Publisher pub_completed= node.advertise<surgery_sim::Plan>( "/completed_points", 1);

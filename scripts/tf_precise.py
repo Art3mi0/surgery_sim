@@ -31,10 +31,10 @@ if __name__ == '__main__':
 	rospy.init_node('tf_a')
 	listener = tf.TransformListener()
 
-	rate = rospy.Rate(10.0)
+	rate = rospy.Rate(1.0)
 	while not rospy.is_shutdown():
 		try:
-			(trans,rot) = listener.lookupTransform('/wrist_3_link', '/base', rospy.Time(0))
+			(trans,rot) = listener.lookupTransform('/checkerboard', '/camera_color_optical_frame', rospy.Time(0))
 			(r,p,y) = euler_from_quaternion(rot[0], rot[1], rot[2], rot[3])
 			print("trans:", trans, "\nrot Quaternion:", rot, "\nrot RPY (radian):", r, p, y,
 			"\nrot RPY (degree)", np.rad2deg(r), np.rad2deg(p), np.rad2deg(y), "\n") 

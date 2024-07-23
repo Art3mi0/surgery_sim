@@ -73,9 +73,11 @@ bool show_next = true;
 bool flagL = false;
 bool flagR = false;
 bool pcl_received = false;
+bool projected_received = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
+pcl::PointCloud<pcl::PointXYZ> projected_pose_cloud;
 
 // when the mode switches, the text and text color will also change
 bool flag(surgery_sim::Reset::Request  &req,
@@ -168,14 +170,19 @@ void robot_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl_received = true;
 }
 
+void get_projected_pose(const sensor_msgs::PointCloud2 &  _data){
+	pcl::fromROSMsg(_data, projected_pose_cloud);
+	projected_received = true;
+}
+
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "user_overlay");
+  ros::init(argc, argv, "user_overlay_planner");
   ros::NodeHandle node;
   ros::NodeHandle home("~");
-	std::string source = "plan";
-  std::string mode = "crop";
-  bool sim = true;
+	std::string source = "path";
+  std::string mode = "crop_resize";
+  bool sim = false;
   bool dbg = true;
 	home.getParam("sim", sim); // options are: "true"; "false"
   home.getParam("dbg", dbg); // options are: "true"; "false"
@@ -208,6 +215,7 @@ int main(int argc, char** argv)
   
   ros::Subscriber robot_points_sub = node.subscribe("/robot_plancloud" ,1, robot_pcl_callback);
   ros::Subscriber completed_sub = node.subscribe("/completed_points" ,1, get_completed);
+  ros::Subscriber project_cloud_sub = node.subscribe("/pose_on_cloud" ,1, get_projected_pose);
   ros::Subscriber pcl_sub = node.subscribe(subscriber_topic, 1, pcl_callback); // cloud from chosen source
   ros::Publisher pcl_l_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_l", 1);
   ros::Publisher pcl_r_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_r", 1);
@@ -256,8 +264,8 @@ int main(int argc, char** argv)
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
         pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
         if (dbg){
-          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), robot_plan_cloud, rob_cloud_out_l, listener);
-          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), robot_plan_cloud, rob_cloud_out_r, listener);
+          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), projected_pose_cloud, rob_cloud_out_l, listener);
+          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), projected_pose_cloud, rob_cloud_out_r, listener);
         }
         got_transform = true;
         for (int i = 0; i < cloud_out_l.points.size(); i++){

@@ -248,13 +248,14 @@ int main(int argc, char* argv[]){
 
 	if (!sim){
 		// real robot box
-		x_max = 0.09;
-		x_min = -0.15;
-		y_max = -0.38;
-		y_min = -0.7;
-		z_max = 0.35;
-		z_min = 0.025;
+		x_max = 0.11;
+		x_min = 0.03028;
+		y_max = 0.0008;
+		y_min = -0.669;
+		z_max = 0.0762;
+		z_min = 0.018;
 	}
+	// x=0.03028, y=0.0008, z=0.0181
   
   ros::Rate rate(10.0);
   while (node.ok()){
@@ -267,9 +268,9 @@ int main(int argc, char* argv[]){
 				// unless the user moves faster than the loop frequency
 				// click count flag is for when the robot is first initialized
 				if ((!white_flag) || (click_count == 0)){
-					rx = 4 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
-					ry = 4 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
-					rz = 4 * (robot_point.linear.z - robot_initial.linear.z) + origin_z;
+					rx = 2 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
+					ry = 2 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
+					rz = 2 * (robot_point.linear.z - robot_initial.linear.z) + origin_z;
 					
 				}else{
 					rx = phantom_pos.pose.position.x;
@@ -386,6 +387,13 @@ int main(int argc, char* argv[]){
 		if (h_pose_received && robot_received & !stop){
 			update_force(rx, ry, rz);
 			calc_center_force();
+			force_pub.publish(centering_force);
+		}
+		
+		if (stop){
+			centering_force.force.x = 0;
+			centering_force.force.y = 0;
+			centering_force.force.z = 0;
 			force_pub.publish(centering_force);
 		}
 

@@ -49,7 +49,7 @@ std::string plan_type = "model"; // Options: coded; clicked; planner; model
 
 bool custom_plan = true;
 bool hap_flag;
-float offset = .0015;
+float offset = .001;
 
 void filtered_callback(const sensor_msgs::PointCloud2 & _data){   
      pcl::fromROSMsg(_data, filtered_path);
@@ -456,7 +456,7 @@ int main(int argc, char** argv){
 					tmp.z = plan_point.linear.z;
 					dbg_cloud.points.push_back(tmp);
 					
-					plan_point.linear.z = transformed_path.points[i].z + .004;
+					plan_point.linear.z = transformed_path.points[i].z - .005;
 					robot_plan_points.push_back(plan_point);
 					tmp.x = plan_point.linear.x;
 					tmp.y = plan_point.linear.y;
@@ -476,10 +476,11 @@ int main(int argc, char** argv){
 		rob_y = robot_current.linear.y;
 		rob_z = robot_current.linear.z;
 		for (int i = 0; i < dbg_cloud.size(); i++){
-			if ((calc_diff(rob_x, dbg_cloud[i].x)) && 
-			(calc_diff(rob_y, dbg_cloud[i].y)) && 
-			(calc_diff(rob_z, dbg_cloud[i].z))){
-				dbg_cloud.erase(dbg_cloud.begin() + i);		
+			if ((calc_diff(rob_x, dbg_rob_cloud[i].x)) && 
+			(calc_diff(rob_y, dbg_rob_cloud[i].y)) && 
+			(calc_diff(rob_z, dbg_rob_cloud[i].z))){
+				dbg_cloud.erase(dbg_cloud.begin() + i);
+				dbg_rob_cloud.erase(dbg_rob_cloud.begin() + i);
 			}
 		}
 	}

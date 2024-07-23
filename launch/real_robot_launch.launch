@@ -1,6 +1,6 @@
 <launch>
 
-	<arg name="px_x" value="real2" />
+	<arg name="px_x" value="real_line5" />
 	<arg name="is_sim" value="false" />
 
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" >
@@ -13,7 +13,9 @@
 		<param name="plan_type" value="planner"/>
 	</node>
 	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
-	<node pkg="surgery_sim" type="point_counter" name="point_counter" />
+	<node pkg="surgery_sim" type="point_counter" name="point_counter" >
+		<param name="sim" value="$(arg is_sim)"/>
+	</node>
 	<node pkg="surgery_sim" type="task_space_traj_reset" name="task_space_traj_node" output="screen" >
 		<param name="sim" value="$(arg is_sim)"/>
 	</node>
@@ -29,6 +31,7 @@
 		<param name="source" value="plan"/>
 		<param name="mode" value="crop_resize"/>
 		<param name="sim" value="$(arg is_sim)"/>
+		<param name="dbg" value="false"/>
 	</node>
 	<node pkg="surgery_sim" type="record_bag.sh" name="record_bag" output="screen" args="$(arg px_x)"/>
 

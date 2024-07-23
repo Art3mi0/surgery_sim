@@ -57,7 +57,7 @@
 //*************************************************************************
 // defines
 
-#define CYCLE_TIME_IN_SECONDS                   0.01 //.03 for fast
+#define CYCLE_TIME_IN_SECONDS                   0.02 //.03 for fast
 #define NUMBER_OF_DOFS                          6
 
 
