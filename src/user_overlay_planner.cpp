@@ -11,6 +11,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/PointStamped.h>
 #include <surgery_sim/Reset.h>
 #include <surgery_sim/Plan.h>
 #include <math.h>
@@ -68,6 +69,7 @@ cv_bridge::CvImagePtr cv_ptr_l;
 cv_bridge::CvImagePtr cv_ptr_r;
 image_geometry::PinholeCameraModel cam_model_l;
 image_geometry::PinholeCameraModel cam_model_r;
+geometry_msgs::PointStamped projected_point;
 
 bool show_next = true;
 bool flagL = false;
@@ -77,7 +79,6 @@ bool projected_received = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
-pcl::PointCloud<pcl::PointXYZ> projected_pose_cloud;
 
 // when the mode switches, the text and text color will also change
 bool flag(surgery_sim::Reset::Request  &req,
@@ -170,8 +171,8 @@ void robot_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl_received = true;
 }
 
-void get_projected_pose(const sensor_msgs::PointCloud2 &  _data){
-	pcl::fromROSMsg(_data, projected_pose_cloud);
+void get_projected_pose(const geometry_msgs::PointStamped &  _data){
+  projected_point = _data;
 	projected_received = true;
 }
 
@@ -233,6 +234,8 @@ int main(int argc, char** argv)
   ros::Duration delta_time;
   float tmp_time;
   std::string time_str;
+  geometry_msgs::PointStamped caml_projected_point;
+  geometry_msgs::PointStamped camr_projected_point;
 
   tf::TransformListener listener;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_l;
@@ -264,8 +267,10 @@ int main(int argc, char** argv)
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
         pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
         if (dbg){
-          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), projected_pose_cloud, rob_cloud_out_l, listener);
-          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), projected_pose_cloud, rob_cloud_out_r, listener);
+          listener.transformPoint(cam_model_l.tfFrame(), projected_point, caml_projected_point);
+          listener.transformPoint(cam_model_r.tfFrame(), projected_point, camr_projected_point);
+          // pcl_ros::transformPointCloud(cam_model_l.tfFrame(), projected_pose_cloud, rob_cloud_out_l, listener);
+          // pcl_ros::transformPointCloud(cam_model_r.tfFrame(), projected_pose_cloud, rob_cloud_out_r, listener);
         }
         got_transform = true;
         for (int i = 0; i < cloud_out_l.points.size(); i++){
@@ -292,19 +297,44 @@ int main(int argc, char** argv)
           }
 
           // If the real robot, it will do what it just did but with the extra pcl.
-          if (dbg){
-            cv::Point3d rob_pt_cv_l(rob_cloud_out_l.points[i].x, rob_cloud_out_l.points[i].y, rob_cloud_out_l.points[i].z);
-            cv::Point3d rob_pt_cv_r(rob_cloud_out_r.points[i].x, rob_cloud_out_r.points[i].y, rob_cloud_out_r.points[i].z);
-            cv::Point2d rob_uv_l;
-            cv::Point2d rob_uv_r;
+          // if (dbg){
+          //   cv::Point3d rob_pt_cv_l(caml_projected_point.point.x, caml_projected_point.point.y, caml_projected_point.point.z);
+          //   cv::Point3d rob_pt_cv_r(camr_projected_point.point.x, camr_projected_point.point.y, camr_projected_point.point.z);
+          //   cv::Point2d rob_uv_l;
+          //   cv::Point2d rob_uv_r;
+          //   cv::Point2d test3;
+          //   cv::Point2d test4;
+          //   rob_uv_l = cam_model_l.project3dToPixel(rob_pt_cv_l);
+          //   rob_uv_r = cam_model_r.project3dToPixel(rob_pt_cv_r);
+          //   test3 = cam_model_l.unrectifyPoint(rob_uv_l);
+          //   test4 = cam_model_r.unrectifyPoint(rob_uv_r);
+
+          //   if (i == comp_size - color_fix){
+          //     cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,255,0), -1);
+          //     cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,255,0), -1);
+          //   } else{
+          //     cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,0,255), -1);
+          //     cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,0,255), -1);
+          //   }
+          // }
+
+          // pcl_l_pub.publish(cloud_out_l);
+          // pcl_r_pub.publish(cloud_out_r);
+        }
+
+        if (dbg){
+            cv::Point3d proj_pt_cv_l(caml_projected_point.point.x, caml_projected_point.point.y, caml_projected_point.point.z);
+            cv::Point3d proj_pt_cv_r(camr_projected_point.point.x, camr_projected_point.point.y, camr_projected_point.point.z);
+            cv::Point2d proj_uv_l;
+            cv::Point2d proj_uv_r;
             cv::Point2d test3;
             cv::Point2d test4;
-            rob_uv_l = cam_model_l.project3dToPixel(rob_pt_cv_l);
-            rob_uv_r = cam_model_r.project3dToPixel(rob_pt_cv_r);
-            test3 = cam_model_l.unrectifyPoint(rob_uv_l);
-            test4 = cam_model_r.unrectifyPoint(rob_uv_r);
+            proj_uv_l = cam_model_l.project3dToPixel(proj_pt_cv_l);
+            proj_uv_r = cam_model_r.project3dToPixel(proj_pt_cv_r);
+            test3 = cam_model_l.unrectifyPoint(proj_uv_l);
+            test4 = cam_model_r.unrectifyPoint(proj_uv_r);
 
-            if (i == comp_size - color_fix){
+            if (true){
               cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,255,0), -1);
               cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,255,0), -1);
             } else{
@@ -313,9 +343,8 @@ int main(int argc, char** argv)
             }
           }
 
-          pcl_l_pub.publish(cloud_out_l);
-          pcl_r_pub.publish(cloud_out_r);
-        }
+        pcl_l_pub.publish(cloud_out_l);
+        pcl_r_pub.publish(cloud_out_r);
       }
       catch (tf::TransformException ex)
       {

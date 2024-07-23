@@ -267,7 +267,7 @@ int main(int argc, char* argv[]){
 				// While in manual mode, the force updates to where the pen already is, essentially makes it so no force exists
 				// unless the user moves faster than the loop frequency
 				// click count flag is for when the robot is first initialized
-				if ((!white_flag) || (click_count == 0)){
+				if (((!white_flag) || (click_count == 0)) && (right_click_count > 0)){
 					rx = 2 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
 					ry = 2 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
 					rz = 2 * (robot_point.linear.z - robot_initial.linear.z) + origin_z;

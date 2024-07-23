@@ -34,12 +34,12 @@ if __name__ == '__main__':
 	# set the ideal time to destination
 	pos_cmd_point.time_from_start = rospy.Duration(1.0) # here one second 
 
-	pos_cmd_point.positions[0] = 1.73
-	pos_cmd_point.positions[1] = -1.44
-	pos_cmd_point.positions[2] = 1.4
-	pos_cmd_point.positions[3] = -1.86
-	pos_cmd_point.positions[4] = -1.5645
-	pos_cmd_point.positions[5] = -1.73
+	pos_cmd_point.positions[0] = 1.69
+	pos_cmd_point.positions[1] = -1.1
+	pos_cmd_point.positions[2] = 1.41
+	pos_cmd_point.positions[3] = -2.17
+	pos_cmd_point.positions[4] = -1.56
+	pos_cmd_point.positions[5] = -1.71
 	# add the trajectory point to the command
 	pos_cmd.points.append(pos_cmd_point)
 	# define a message header	

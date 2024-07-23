@@ -1,6 +1,6 @@
 <launch>
 
-	<arg name="px_x" value="real_line5" />
+	<arg name="px_x" value="dbg" />
 	<arg name="is_sim" value="false" />
 
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" >
