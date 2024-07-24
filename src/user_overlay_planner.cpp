@@ -47,6 +47,8 @@ int width;
 int comp_size = 0;
 std::string text = "Standby";
 std::string next_text = "Starting In Manual";
+std_msgs::Header hl;
+std_msgs::Header hr;
 
 int crop_x;
 int crop_y;
@@ -139,6 +141,7 @@ const sensor_msgs::CameraInfoConstPtr& info_msg_l)
   cam_model_l.fromCameraInfo(info_msg_l);
   width = cv_ptr_l->image.cols;
   height = cv_ptr_l->image.rows;
+  hl = cv_ptr_l->header;
 
   flagL = true;
 }
@@ -157,6 +160,7 @@ const sensor_msgs::CameraInfoConstPtr& info_msg_r)
   }
 
   cam_model_r.fromCameraInfo(info_msg_r);
+  hr = cv_ptr_r->header;
 
   flagR = true;
 }
@@ -230,6 +234,9 @@ int main(int argc, char** argv)
   sensor_msgs::ImagePtr l_img_ptr;
   sensor_msgs::ImagePtr r_img_ptr;
 
+  ros::Time time_test;
+  double sec_test;
+
   ros::Time start_time;
   ros::Duration delta_time;
   float tmp_time;
@@ -252,6 +259,10 @@ int main(int argc, char** argv)
   // In the point projection, the points from the first pointcloud are from the surface of an object, and if it
   // is the real robot, the second are from an offset.
   while (node.ok()){
+    std::cout << hl.seq << "   " << hr.seq << std::endl;
+    //sec_test = time_test.sec;
+    //std::cout << cv_ptr_l->header.stamp.secs << std::endl;
+    //ROS_INFO("test");
      if ((pcl_received) && (flagL) && (flagR)){ 
       if (text == "Manual"){
         if ((plan_tmp != plan_cloud.size())){
@@ -474,6 +485,10 @@ int main(int argc, char** argv)
         pubR.publish(cv_ptr_r->toImageMsg());
       }
     }
+
+  if (hl.seq >= 395){
+    ros::Duration(0.3).sleep();
+  }
 
   loop_rate.sleep();
   ros::spinOnce();
