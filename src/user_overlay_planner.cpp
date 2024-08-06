@@ -259,7 +259,7 @@ int main(int argc, char** argv)
   // In the point projection, the points from the first pointcloud are from the surface of an object, and if it
   // is the real robot, the second are from an offset.
   while (node.ok()){
-    std::cout << hl.seq << "   " << hr.seq << std::endl;
+    //std::cout << hl.seq << "   " << hr.seq << std::endl;
     //sec_test = time_test.sec;
     //std::cout << cv_ptr_l->header.stamp.secs << std::endl;
     //ROS_INFO("test");
@@ -486,9 +486,9 @@ int main(int argc, char** argv)
       }
     }
 
-  if (hl.seq >= 395){
-    ros::Duration(0.3).sleep();
-  }
+  // if (hl.seq >= 395){
+  //   ros::Duration(0.3).sleep();
+  // }
 
   loop_rate.sleep();
   ros::spinOnce();

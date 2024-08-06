@@ -39,13 +39,15 @@ at the bottom of the screen. At the top, the images start looking a bit off, but
 at the bottom.
 */
 
-static const int RADIUS = 7;
+static const int RADIUS = 5; // old size was 7
 int text_size = 3;
 int height;
 int width;
 int comp_size = 0;
 std::string text = "Standby";
 std::string next_text = "Starting In Manual";
+geometry_msgs::Twist robot_point;
+surgery_sim::Plan robot_plan;
 
 int crop_x;
 int crop_y;
@@ -64,6 +66,12 @@ int r2 = 255;
 int g2 = 255;
 int b2 = 255;
 
+int dr = 255;
+int dg = 255;
+int db = 255;
+
+float depth;
+
 cv_bridge::CvImagePtr cv_ptr_l;
 cv_bridge::CvImagePtr cv_ptr_r;
 image_geometry::PinholeCameraModel cam_model_l;
@@ -73,6 +81,7 @@ bool show_next = true;
 bool flagL = false;
 bool flagR = false;
 bool pcl_received = false;
+bool robot_received = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
@@ -118,6 +127,10 @@ bool flag(surgery_sim::Reset::Request  &req,
 
 void get_completed(const surgery_sim::Plan & _data){
   comp_size = _data.points.size();
+}
+
+void get_rob_plan(const surgery_sim::Plan & _data){
+  robot_plan = _data;
 }
 
 void imageCbL(const sensor_msgs::ImageConstPtr& image_msg_l,
@@ -168,6 +181,12 @@ void robot_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl_received = true;
 }
 
+void robot_callback(const geometry_msgs::Twist &  _data){
+	// read the pose of the robot
+	robot_point = _data;
+	robot_received = true;
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "user_overlay");
@@ -206,9 +225,11 @@ int main(int argc, char** argv)
   cv::Rect crop(crop_x, crop_y, crop_width, crop_height);
 
   
-  ros::Subscriber robot_points_sub = node.subscribe("/robot_plancloud" ,1, robot_pcl_callback);
+  ros::Subscriber robot_points_sub = node.subscribe("/user_plancloud" ,1, robot_pcl_callback);
   ros::Subscriber completed_sub = node.subscribe("/completed_points" ,1, get_completed);
+  ros::Subscriber rob_plan_sub = node.subscribe("/robot_plan" ,1, get_rob_plan);
   ros::Subscriber pcl_sub = node.subscribe(subscriber_topic, 1, pcl_callback); // cloud from chosen source
+  ros::Subscriber robot_pos_sub = node.subscribe("/ur5e/toolpose",10, robot_callback);
   ros::Publisher pcl_l_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_l", 1);
   ros::Publisher pcl_r_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_r", 1);
 
@@ -225,6 +246,10 @@ int main(int argc, char** argv)
   ros::Duration delta_time;
   float tmp_time;
   std::string time_str;
+  std::string depth_str;
+
+  cv::Point2d prev_pt_l;
+  cv::Point2d prev_pt_r;
 
   tf::TransformListener listener;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_l;
@@ -282,9 +307,11 @@ int main(int argc, char** argv)
             cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(255,0,0), -1);
             cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(255,0,0), -1);
           }
+        }
 
-          // If the real robot, it will do what it just did but with the extra pcl.
-          if (dbg){
+        // If the real robot, it will do what it just did but with the extra pcl.
+        if (dbg){
+          for (int i = 0; i < rob_cloud_out_l.points.size(); i++){
             cv::Point3d rob_pt_cv_l(rob_cloud_out_l.points[i].x, rob_cloud_out_l.points[i].y, rob_cloud_out_l.points[i].z);
             cv::Point3d rob_pt_cv_r(rob_cloud_out_r.points[i].x, rob_cloud_out_r.points[i].y, rob_cloud_out_r.points[i].z);
             cv::Point2d rob_uv_l;
@@ -296,18 +323,28 @@ int main(int argc, char** argv)
             test3 = cam_model_l.unrectifyPoint(rob_uv_l);
             test4 = cam_model_r.unrectifyPoint(rob_uv_r);
 
-            if (i == comp_size - color_fix){
-              cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,255,0), -1);
-              cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,255,0), -1);
+            if (i == 0){
+              prev_pt_l = test3;
+              prev_pt_r = test4;
             } else{
-              cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,0,255), -1);
-              cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,0,255), -1);
+              cv::line(cv_ptr_l->image, prev_pt_l, test3, CV_RGB(0,255,0), 2);
+              cv::line(cv_ptr_r->image, prev_pt_r, test4, CV_RGB(0,255,0), 2);
+              prev_pt_l = test3;
+              prev_pt_r = test4;
             }
-          }
 
-          pcl_l_pub.publish(cloud_out_l);
-          pcl_r_pub.publish(cloud_out_r);
+            // if (i == comp_size - color_fix){
+            //   cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,255,0), -1);
+            //   cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,255,0), -1);
+            // } else{
+            //   cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,0,255), -1);
+            //   cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,0,255), -1);
+            // }
+          }
         }
+
+        pcl_l_pub.publish(cloud_out_l);
+        pcl_r_pub.publish(cloud_out_r);
       }
       catch (tf::TransformException ex)
       {
@@ -364,14 +401,50 @@ int main(int argc, char** argv)
           tmp_time = delta_time.sec + delta_time.nsec * pow(10, -9);
           time_str = std::to_string(tmp_time);
           time_str.resize(time_str.size()-5);
+          
           cv::putText(cv_ptr_l->image, 
           time_str + "s",
           cv::Point((crop.width / 1.1), crop.height * .6), 
           cv::FONT_HERSHEY_DUPLEX,
           text_size * 0.75, 
           CV_RGB(255, 255, 0),
-        2);
+          2);
+          
+          //Begin depth display
+          depth = robot_point.linear.z - robot_plan.points[comp_size].linear.z;
+          depth = depth * 1000; // Converts to mm
+          if (depth >= 1){          // White if freater than 1mm
+            dr = 255;
+            dg = 255;
+            db = 255;
+          } else if (depth >= .5){  // Light green if close above
+            dr = 167;
+            dg = 235;
+            db = 167;
+          } else if (depth >= -.5){  // Green if close
+            dr = 0;
+            dg = 120;
+            db = 0;
+          } else if (depth >= -1){   // Yellow if close below
+            dr = 255;
+            dg = 255;
+            db = 0;
+          } else{   // Red if too deep
+            dr = 255;
+            dg = 0;
+            db = 0;
+          }
+          depth_str = std::to_string(depth);
+          depth_str.resize(depth_str.size()-4);
+          cv::putText(cv_ptr_l->image, 
+          depth_str + "mm",
+          cv::Point((crop.width / .9), crop.height * .8), 
+          cv::FONT_HERSHEY_DUPLEX,
+          text_size * 0.75, 
+          CV_RGB(dr, dg, db),
+          2);
         }
+        //End depth display
 
         cv::resize(cv_ptr_l->image(crop), resized_down_l, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);
         cv::resize(cv_ptr_r->image(crop), resized_down_r, cv::Size(width*.45, height*.45), CV_INTER_LINEAR);

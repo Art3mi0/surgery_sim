@@ -34,6 +34,7 @@ add_message_files(
   FILES
 	Plan.msg
 	PedalEvent.msg
+	Density.msg
 )
 
 add_service_files(
@@ -112,6 +113,9 @@ target_link_libraries(overlay_broadcast ${catkin_LIBRARIES})
 
 add_executable(reset_node src/reset_node.cpp)
 target_link_libraries(reset_node ${catkin_LIBRARIES})
+
+add_executable(density_calc src/density_calc.cpp)
+target_link_libraries(density_calc ${catkin_LIBRARIES})
 
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})

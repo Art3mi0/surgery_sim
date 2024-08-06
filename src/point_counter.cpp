@@ -23,6 +23,7 @@ bool complete_flag = true;
 bool plan_received = false;
 
 float offset = .001;
+geometry_msgs::Twist dummy_point;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
@@ -57,6 +58,18 @@ bool calc_diff(float num1, float num2){
 		return false;
 }
 
+float calc_distance(geometry_msgs::Twist p, geometry_msgs::Twist q){
+	float x;
+	float y;
+	float z;
+
+	x = pow(p.linear.x - q.linear.x, 2);
+	y = pow(p.linear.y - q.linear.y, 2);
+	z = pow(p.linear.z - q.linear.z, 2);
+
+	return pow(x + y + z, 0.5);
+}
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "point_counter");
 
@@ -82,12 +95,21 @@ int main(int argc, char** argv){
   tf::TransformListener listener;
   
   // Initiating variables
+	bool index = false;
   bool robot_recorded = false;
+	bool once = true;
   geometry_msgs::Twist initial;
   
 	float rob_x;
 	float rob_y;
 	float rob_z;
+	float shortest_distance = 999;
+	float tmp_distance;
+	int shortest_point = 0;
+
+	dummy_point.linear.x = 0.07;
+	dummy_point.linear.y = 0.018;
+	dummy_point.linear.z = 0.404;
 
 	pcl::PointXYZI tmp_rob;
 
@@ -99,29 +121,60 @@ int main(int argc, char** argv){
 		rob_x = robot_current.linear.x;
 		rob_y = robot_current.linear.y;
 		rob_z = robot_current.linear.z;
-	}
-	
-	if ((plan.points.size() > 0) && (plan_received)){
-		for (int i = 0; i < plan.points.size(); i++){
-			if ((calc_diff(rob_x, plan.points[i].linear.x)) && 
-			(calc_diff(rob_y, plan.points[i].linear.y)) && 
-			(calc_diff(rob_z, plan.points[i].linear.z))){
-				for (int j = 0; j < temp_points.size(); j ++){
-					if (temp_points[j] == plan.points[i]){
-						complete_flag = false;
-					}
-				}
-				if (complete_flag){
-					temp_points.push_back(plan.points[i]);
-				} else{
-					complete_flag = true;
-				}
-			}
+
+		if (once){
+			dummy_point.angular.x = robot_current.angular.x;
+			dummy_point.angular.y = robot_current.angular.y;
+			dummy_point.angular.z = robot_current.angular.z;
+			once = false;
 		}
 	}
 	
-	completed_points.points = temp_points;
-	pub_completed.publish(completed_points);
+	if (index){
+
+		if ((plan.points.size() > 0) && (plan_received)){
+			for (int i = 0; i < plan.points.size(); i++){
+				if ((calc_diff(rob_x, plan.points[i].linear.x)) && 
+				(calc_diff(rob_y, plan.points[i].linear.y)) && 
+				(calc_diff(rob_z, plan.points[i].linear.z))){
+					for (int j = 0; j < temp_points.size(); j ++){
+						if (temp_points[j] == plan.points[i]){
+							complete_flag = false;
+						}
+					}
+					if (complete_flag){
+						temp_points.push_back(plan.points[i]);
+					} else{
+						complete_flag = true;
+					}
+				}
+			}
+		}
+		
+		completed_points.points = temp_points;
+		pub_completed.publish(completed_points);
+
+	} else{
+		if ((plan.points.size() > 0) && (plan_received)){
+			for (int i = 0; i < plan.points.size(); i++){
+				tmp_distance = calc_distance(plan.points[i], robot_current);
+				if (tmp_distance < shortest_distance){
+					shortest_distance = tmp_distance;
+					shortest_point = i;
+				}
+			}
+			shortest_distance = 999;
+			while (temp_points.size() != shortest_point){
+				if (temp_points.size() < shortest_point){
+					temp_points.push_back(dummy_point);
+				} else{
+					temp_points.pop_back();
+				}
+			}
+			completed_points.points = temp_points;
+			pub_completed.publish(completed_points);
+		}
+	}
 
 	loop_rate.sleep();
 	ros::spinOnce();

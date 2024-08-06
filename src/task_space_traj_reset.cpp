@@ -57,7 +57,7 @@
 //*************************************************************************
 // defines
 
-#define CYCLE_TIME_IN_SECONDS                   0.02 //.03 for fast
+#define CYCLE_TIME_IN_SECONDS                   0.01
 #define NUMBER_OF_DOFS                          6
 
 
@@ -150,20 +150,20 @@ void initialize_plan(RMLPositionInputParameters  *_IP){
 		_IP->CurrentAccelerationVector->VecData  [5] =    0.0;
 
 
-		_IP->MaxVelocityVector->VecData          [0] =    0.1      ;
-		_IP->MaxVelocityVector->VecData          [1] =    0.1      ;
-		_IP->MaxVelocityVector->VecData          [2] =    0.1      ;
-		_IP->MaxVelocityVector->VecData          [3] =    0.1      ;
-		_IP->MaxVelocityVector->VecData          [4] =    0.1      ;
-		_IP->MaxVelocityVector->VecData          [5] =    0.1      ;
+		_IP->MaxVelocityVector->VecData          [0] =    0.16      ;
+		_IP->MaxVelocityVector->VecData          [1] =    0.16      ;
+		_IP->MaxVelocityVector->VecData          [2] =    0.16      ;
+		_IP->MaxVelocityVector->VecData          [3] =    0.16      ;
+		_IP->MaxVelocityVector->VecData          [4] =    0.16      ;
+		_IP->MaxVelocityVector->VecData          [5] =    0.16      ;
 
 
-		_IP->MaxAccelerationVector->VecData      [0] =    0.1      ;
-		_IP->MaxAccelerationVector->VecData      [1] =    0.1      ;
-		_IP->MaxAccelerationVector->VecData      [2] =    0.1      ;
-		_IP->MaxAccelerationVector->VecData      [3] =    0.1      ;
-		_IP->MaxAccelerationVector->VecData      [4] =    0.1      ;
-		_IP->MaxAccelerationVector->VecData      [5] =    0.1      ;
+		_IP->MaxAccelerationVector->VecData      [0] =    0.16      ;
+		_IP->MaxAccelerationVector->VecData      [1] =    0.16      ;
+		_IP->MaxAccelerationVector->VecData      [2] =    0.16      ;
+		_IP->MaxAccelerationVector->VecData      [3] =    0.16      ;
+		_IP->MaxAccelerationVector->VecData      [4] =    0.16      ;
+		_IP->MaxAccelerationVector->VecData      [5] =    0.16      ;
 
 
 

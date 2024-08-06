@@ -30,10 +30,13 @@ geometry_msgs::Twist robot_current;
 surgery_sim::Reset reset;
 surgery_sim::Plan plan;
 surgery_sim::Plan robot_plan;
+surgery_sim::Plan sqr_plan;
 std::vector<geometry_msgs::Twist> plan_points;
 std::vector<geometry_msgs::Twist> robot_plan_points;
+std::vector<geometry_msgs::Twist> sqr_plan_points;
 pcl::PointCloud<pcl::PointXYZI> dbg_cloud;
 pcl::PointCloud<pcl::PointXYZI> dbg_rob_cloud;
+pcl::PointCloud<pcl::PointXYZI> dbg_sqr_cloud;
 pcl::PointCloud<pcl::PointXYZI> robot_cloud;
 pcl::PointCloud<pcl::PointXYZ> filtered_path;
 pcl::PointCloud<pcl::PointXYZ> transformed_path;
@@ -49,6 +52,7 @@ std::string plan_type = "model"; // Options: coded; clicked; planner; model
 
 bool custom_plan = true;
 bool hap_flag;
+bool hover_point = true;
 float offset = .001;
 
 void filtered_callback(const sensor_msgs::PointCloud2 & _data){   
@@ -133,7 +137,11 @@ int main(int argc, char** argv){
   ros::NodeHandle node;
 	ros::NodeHandle home("~");
 	std::string plan_type = "model_ew";
+	std::string start_mode = "manual";
+	float cut_depth = 0.005;
 	home.getParam("plan_type", plan_type); // options are: coded; clicked; planner; model
+	home.getParam("start_mode", start_mode); // options are : manual; auto
+	home.getParam("cut_depth", cut_depth);
   
   ros::ServiceServer service = node.advertiseService("plan_server", flag);
   ros::ServiceClient traj_client = node.serviceClient<surgery_sim::Reset>("reset");
@@ -144,6 +152,7 @@ int main(int argc, char** argv){
   ros::Publisher pub_point= node.advertise<geometry_msgs::PointStamped>( "/haptic_point", 1 );
   ros::Publisher dbg_traj_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("plancloud",1);
 	ros::Publisher dbg_traj_rob_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("robot_plancloud",1);
+	ros::Publisher dbg_traj_user_pub = node.advertise<pcl::PointCloud<pcl::PointXYZI> > ("user_plancloud",1);
 	// subscriber for reading pedal input
 	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	// subscriber for reading pcl from path planner
@@ -154,6 +163,7 @@ int main(int argc, char** argv){
   // publisher for writing the plan
 	ros::Publisher pub_plan= node.advertise<surgery_sim::Plan>( "/plan", 1);
 	ros::Publisher pub_rob_plan= node.advertise<surgery_sim::Plan>( "/robot_plan", 1);
+	ros::Publisher pub_user_plan= node.advertise<surgery_sim::Plan>( "/user_plan", 1);
 
   tf::TransformListener listener;
 	tf::StampedTransform transform;
@@ -169,6 +179,16 @@ int main(int argc, char** argv){
 	float rob_x;
 	float rob_y;
 	float rob_z;
+
+	geometry_msgs::Twist last_sqr_point;
+	pcl::PointXYZI last_sqr_tmp;
+	float tmp_sqr_x;
+	float tmp_sqr_y;
+	float last_sqr_x;
+	float last_sqr_y;
+	bool sqr_flag = false;
+	bool init_sqr_flag = true;
+	bool sqr_swap_flag = false;
 
 	pcl::PointXYZI tmp_rob;
 
@@ -446,7 +466,23 @@ int main(int argc, char** argv){
 			if ((pedal_received) && (pedal_data.right_pedal == 1)){
 				pcl_ros::transformPointCloud("base", filtered_path, transformed_path, listener);
 				
-				for (int i = 0; i < transformed_path.points.size(); i++){
+				int error_ctr = 0;
+
+				for (int i = 0; i < transformed_path.points.size(); i++){					
+					if ((start_mode == "auto") && (hover_point)){
+						plan_point.linear.x = transformed_path.points[i].x;
+						plan_point.linear.y = transformed_path.points[i].y;
+						plan_point.linear.z = transformed_path.points[i].z + .004;
+						plan_points.push_back(plan_point);
+						tmp.x = plan_point.linear.x;
+						tmp.y = plan_point.linear.y;
+						tmp.z = plan_point.linear.z;
+						dbg_cloud.points.push_back(tmp);
+						robot_plan_points.push_back(plan_point);
+						dbg_rob_cloud.points.push_back(tmp);
+						hover_point = false;
+					}
+					
 					plan_point.linear.x = transformed_path.points[i].x;
 					plan_point.linear.y = transformed_path.points[i].y;
 					plan_point.linear.z = transformed_path.points[i].z;
@@ -455,15 +491,73 @@ int main(int argc, char** argv){
 					tmp.y = plan_point.linear.y;
 					tmp.z = plan_point.linear.z;
 					dbg_cloud.points.push_back(tmp);
+
+					if ((i == 0) || (i == transformed_path.points.size()-1)){
+						sqr_plan_points.push_back(plan_point);
+						dbg_sqr_cloud.points.push_back(tmp);
+
+						// last_sqr_x = plan_point.linear.x;
+						// last_sqr_y = plan_point.linear.y;
+						//std::cout << "test " << std::endl;
+					} else{
+						tmp_sqr_x = last_sqr_point.linear.x - plan_point.linear.x;
+						if (tmp_sqr_x < 0){
+							tmp_sqr_x = tmp_sqr_x * -1;
+						}
+						tmp_sqr_y = last_sqr_point.linear.y - plan_point.linear.y;
+						if (tmp_sqr_y < 0){
+							tmp_sqr_y = tmp_sqr_y * -1;
+						}
+
+						//std::cout << "x was: " << tmp_sqr_x<< " y was"<< tmp_sqr_y << std::endl;
+
+
+						if (tmp_sqr_x > tmp_sqr_y){
+							if (init_sqr_flag){
+								sqr_flag = true;
+								init_sqr_flag = false;
+							} else{
+								if (!sqr_flag){
+									sqr_swap_flag = true;
+									sqr_flag = true;
+								}
+							}
+						} else{
+							if (init_sqr_flag){
+								sqr_flag = false;
+								init_sqr_flag = false;
+							} else{
+								if (sqr_flag){
+									sqr_swap_flag = true;
+									sqr_flag = false;
+								}
+							}
+						}
+
+						//std::cout <<  sqr_flag << std::endl;
+
+						if (sqr_swap_flag){
+							sqr_plan_points.push_back(last_sqr_point);
+							dbg_sqr_cloud.points.push_back(last_sqr_tmp);
+							sqr_swap_flag = false;
+						}
+					}
+					last_sqr_point = plan_point;
+					last_sqr_tmp = tmp;
 					
-					plan_point.linear.z = transformed_path.points[i].z - .005;
+					// if ((error_ctr > 1) && (error_ctr < 4)){
+					// 	plan_point.linear.x = transformed_path.points[i].x + .005;
+					// }
+					plan_point.linear.z = transformed_path.points[i].z + cut_depth;
 					robot_plan_points.push_back(plan_point);
 					tmp.x = plan_point.linear.x;
 					tmp.y = plan_point.linear.y;
 					tmp.z = plan_point.linear.z;
 					dbg_rob_cloud.points.push_back(tmp);
+					error_ctr++;
 				}
 				plan.points = plan_points;
+				sqr_plan.points = sqr_plan_points;
 				robot_plan.points = robot_plan_points;
 				plan_created = true;
 		}
@@ -471,7 +565,8 @@ int main(int argc, char** argv){
 	}
 	
 	// Only works when in manual mode. Removes points from pcl. The pcl is used by user_overlay
-	if (hap_flag){
+	if (false){
+	//if (hap_flag){
 		rob_x = robot_current.linear.x;
 		rob_y = robot_current.linear.y;
 		rob_z = robot_current.linear.z;
@@ -490,14 +585,19 @@ int main(int argc, char** argv){
 		header.stamp = ros::Time::now();
 		header.frame_id = std::string("base");
 		dbg_cloud.header = pcl_conversions::toPCL(header);
-		dbg_traj_pub.publish(dbg_cloud);
+		dbg_traj_user_pub.publish(dbg_cloud);
+
+		header.stamp = ros::Time::now();
+		dbg_sqr_cloud.header = pcl_conversions::toPCL(header);
+		dbg_traj_pub.publish(dbg_sqr_cloud);
 
 		header.stamp = ros::Time::now();
 		dbg_rob_cloud.header = pcl_conversions::toPCL(header);
 		dbg_traj_rob_pub.publish(dbg_rob_cloud);
 
-		pub_plan.publish(plan);
+		pub_plan.publish(sqr_plan);
 		pub_rob_plan.publish(robot_plan);
+		pub_user_plan.publish(plan);
 		if (call_traj){
 			traj_client.call(reset);
 			call_traj = false;

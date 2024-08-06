@@ -2,6 +2,7 @@
 
 	<arg name="px_x" value="dbg" />
 	<arg name="is_sim" value="false" />
+	<arg name="mode" value="manual" />	<!-- "auto"; "manual" -->
 
 	<node pkg="ur5e_control" type="ur5e_controller" name="ur5e_controller_node" >
 		<param name="sim" value="$(arg is_sim)"/>	
@@ -9,8 +10,10 @@
 	<node pkg="surgery_sim" type="data_logger" name="data_logger" output="screen" >
 		<param name="test_no" value="$(arg px_x)"/>
 	</node>
-	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" >
+	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" output="screen" >
 		<param name="plan_type" value="planner"/>
+		<param name="start_mode" value="$(arg mode)"/>
+		<param name="cut_depth" value="0.005"/>
 	</node>
 	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" >
@@ -31,9 +34,10 @@
 		<param name="source" value="plan"/>
 		<param name="mode" value="crop_resize"/>
 		<param name="sim" value="$(arg is_sim)"/>
-		<param name="dbg" value="false"/>
+		<param name="dbg" value="true"/>
 	</node>
-	<node pkg="surgery_sim" type="record_bag.sh" name="record_bag" output="screen" args="$(arg px_x)"/>
+	<!--node pkg="surgery_sim" type="record_bag.sh" name="record_bag" output="screen" args="$(arg px_x)"/-->
+	<node pkg="surgery_sim" type="density_calc" name="density_calc" output="screen" />
 
 </launch>
 
@@ -47,7 +51,7 @@ move_scale options - any float not greater an 3.0
 roslaunch ur_robot_driver ur5e_bringup.launch robot_ip:=192.168.56.101
 roslaunch ros_tcp_endpoint endpoint.launch tcp_ip:=192.168.56.20 tcp_port:=10000
 
-rosrun rviz rviz -d ~/catkin_ws/src/surgical_path_planning/rviz/devel_config.rviz
+rosrun rviz rviz -d ~/temo/catkin_ws/src/surgical_path_planning/rviz/devel_config.rviz
 roslaunch surgical_path_planning path_planning.launch
 
 -->
