@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <omni_msgs/OmniFeedback.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/Bool.h>
 
 /*
 This node sends robot position data to the ur5e_controller node depending on the current mode. It also handles
@@ -33,6 +34,9 @@ bool white_press;
 bool grey_press;
 int click_count = 0;
 int right_click_count = 0;
+
+std_msgs::Bool intensity_flag;
+bool got_intensity = false;
 
 // simulation box
 float x_max = 1;
@@ -98,6 +102,11 @@ geometry_msgs::PoseStamped phantom_pos;
 void get_phantom_pos(const geometry_msgs::PoseStamped & _data){
 	phantom_pos = _data;
 	h_pose_received = true;
+}
+
+void stop_callback(const std_msgs::Bool & _data){
+	intensity_flag = _data;
+	got_intensity = true;
 }
 
 // method for checking if target position is within the bounding box. Sets position to bounding box values if too large
@@ -217,6 +226,8 @@ int main(int argc, char* argv[]){
 	// timer creation
   ros::Timer timer = node.createTimer(ros::Duration(1), timer_callback, true);
  
+ 	// subscriber for reading confidence intensity flag
+	ros::Subscriber stop_sub = node.subscribe("/stop_auto", 1, stop_callback);
 	// subscriber for reading haptic device pedal input
 	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	// Subscriber for reading the plan trajectory
@@ -233,8 +244,8 @@ int main(int argc, char* argv[]){
   ros::Publisher force_pub =node.advertise<omni_msgs::OmniFeedback>("/phantom/phantom/force_feedback",1);
 	ros::Publisher pub_mode= node.advertise<std_msgs::Int32>( "/current_mode", 1 );
   
-  bool white_flag = false;
-  bool grey_flag = true;
+  bool white_flag = true;
+  bool grey_flag = false;
 	bool stop = false;
   bool robot_flag = true;
 	std_msgs::Int32 current_mode;
@@ -365,7 +376,7 @@ int main(int argc, char* argv[]){
     		timer.stop();
     		timer.setPeriod(ros::Duration(.1));
     		timer.start(); 		
-  		} else if ((right_pressed) && (right_click_count > 1)){
+  		} else if ((right_pressed) && (right_click_count > 2)){
 				stop = true;
   			reset.request.plan_start = false;
   			reset.request.hap_start = false;
@@ -376,7 +387,9 @@ int main(int argc, char* argv[]){
 			// publishes to the ur5e_controller
   		if (timer_white && plan_received && !stop && (click_count > 0)){
 				check_box(plan_point);
-				pub_robot.publish(final_point);
+				if (!intensity_flag.data){
+					pub_robot.publish(final_point);
+				}
 			} else if (timer_grey && haptic_received && !stop && (click_count > 0)){
 				check_box(haptic_point);
 				pub_robot.publish(final_point);

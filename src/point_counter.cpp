@@ -1,12 +1,15 @@
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
-#include<tf/transform_datatypes.h>
+#include <tf/transform_datatypes.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PointStamped.h>
 #include <surgery_sim/Plan.h>
 #include <pcl_ros/point_cloud.h>
-#include<sensor_msgs/PointCloud2.h>
+#include <pcl_ros/transforms.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <cmath>
+#include <std_msgs/Bool.h>
 
 
 /*
@@ -18,12 +21,16 @@ geometry_msgs::Twist robot_current;
 surgery_sim::Plan plan;
 surgery_sim::Plan completed_points;
 std::vector<geometry_msgs::Twist> temp_points;
+std_msgs::Bool stop_auto;
 bool robot_received = false;
 bool complete_flag = true;
 bool plan_received = false;
+bool got_confidence = false;
 
 float offset = .001;
 geometry_msgs::Twist dummy_point;
+
+pcl::PointCloud<pcl::PointXYZI> confidence_cloud;
 
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// Read the pose of the robot
@@ -34,6 +41,11 @@ void robot_callback(const geometry_msgs::Twist &  _data){
 void plan_callback(const surgery_sim::Plan & _data){
 	plan = _data;
 	plan_received = true;
+}
+
+void conf_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
+	pcl::fromROSMsg(_data, confidence_cloud);
+  got_confidence = true;
 }
 
 bool sgn(float num1, float num2){
@@ -88,9 +100,11 @@ int main(int argc, char** argv){
 	// Subscriber for reading the robot pose
 	ros::Subscriber robot_sub = node.subscribe("/ur5e/toolpose", 1, robot_callback);
 	ros::Subscriber pub_sub= node.subscribe( subscriber_topic, 1, plan_callback);
+	ros::Subscriber conf_points_sub = node.subscribe("/path_confidence" ,1, conf_pcl_callback);
 
 	// publisher for writing the plan
 	ros::Publisher pub_completed= node.advertise<surgery_sim::Plan>( "/completed_points", 1);
+	ros::Publisher pub_stop= node.advertise<std_msgs::Bool>( "/stop_auto", 1);
 
   tf::TransformListener listener;
   
@@ -98,6 +112,7 @@ int main(int argc, char** argv){
 	bool index = false;
   bool robot_recorded = false;
 	bool once = true;
+	stop_auto.data = false;
   geometry_msgs::Twist initial;
   
 	float rob_x;
@@ -106,6 +121,7 @@ int main(int argc, char** argv){
 	float shortest_distance = 999;
 	float tmp_distance;
 	int shortest_point = 0;
+	int current_point;
 
 	dummy_point.linear.x = 0.07;
 	dummy_point.linear.y = 0.018;
@@ -163,7 +179,7 @@ int main(int argc, char** argv){
 					shortest_point = i;
 				}
 			}
-			shortest_distance = 999;
+			//std::cout << "Distance to closest point: " << shortest_distance << " the shortest point is: " << shortest_point+1 << std::endl;
 			while (temp_points.size() != shortest_point){
 				if (temp_points.size() < shortest_point){
 					temp_points.push_back(dummy_point);
@@ -175,6 +191,22 @@ int main(int argc, char** argv){
 			pub_completed.publish(completed_points);
 		}
 	}
+
+	current_point = completed_points.points.size();
+	if (got_confidence){
+		if (confidence_cloud.points[current_point].intensity == 1){
+			//std::cout << "Distance to closest point: " << tmp_distance << std::endl;
+			if (shortest_distance < .0001){
+				stop_auto.data = true;
+			} else{
+				stop_auto.data = false;
+			}
+		}
+	}
+
+	shortest_distance = 999;
+
+	pub_stop.publish(stop_auto);
 
 	loop_rate.sleep();
 	ros::spinOnce();

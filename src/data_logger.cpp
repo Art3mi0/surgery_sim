@@ -34,6 +34,7 @@ geometry_msgs::PointStamped traj_point;
 geometry_msgs::PointStamped traj_point_cam;
 omni_msgs::OmniFeedback phantom_ff;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
+pcl::PointCloud<pcl::PointXYZ> sqr_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> cam_l_cloud;
 pcl::PointCloud<pcl::PointXYZ> cam_r_cloud;
 surgery_sim::Plan completed_points;
@@ -48,6 +49,7 @@ bool mode_received = false;
 bool pose_received = false;
 bool traj_received = false;
 bool pcl_received = false;
+bool sqr_pcl_received = false;
 bool caml_received = false;
 bool camr_received = false;
 bool completed_point_received = false;
@@ -137,7 +139,7 @@ void pedal_callback(const surgery_sim::PedalEvent &  _data){
     if (!held){
       pedal = 3;
       click_count++;
-      if (click_count > 1){
+      if (click_count > 3){
         stop = true;
       }
       held = true;
@@ -156,6 +158,11 @@ void pedal_callback(const surgery_sim::PedalEvent &  _data){
 void pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl::fromROSMsg(_data, plan_cloud);
 	pcl_received = true;
+}
+
+void sqr_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
+	pcl::fromROSMsg(_data, sqr_plan_cloud);
+	sqr_pcl_received = true;
 }
 
 void caml_callback(const sensor_msgs::PointCloud2 &  _data){
@@ -193,10 +200,11 @@ int main(int argc, char * argv[]){
   // all of the topics with data we want to log
 	ros::Subscriber pose_sub = nh.subscribe("/ur5e/toolpose",1, pose_callback);
   ros::Subscriber pedal_sub = nh.subscribe("/pedal",1, pedal_callback);
-  ros::Subscriber pcl_sub = nh.subscribe("/plancloud", 1, pcl_callback);
+  ros::Subscriber pcl_sub = nh.subscribe("/robot_plancloud", 1, pcl_callback);
+  ros::Subscriber sqr_pcl_sub = nh.subscribe("/plancloud", 1, sqr_pcl_callback);
   ros::Subscriber pcl_lcam_sub = nh.subscribe("/overlay_cloud_l", 1, caml_callback);
   ros::Subscriber pcl_rcam_sub = nh.subscribe("/overlay_cloud_r", 1, camr_callback);
-  ros::Subscriber plan_sub = nh.subscribe("/plan", 1, plan_callback);
+  ros::Subscriber plan_sub = nh.subscribe("/robot_plan", 1, plan_callback);
   ros::Subscriber haptic_sub = nh.subscribe("/refhap", 1, haptic_callback);
   ros::Subscriber traj_sub = nh.subscribe("/refplan", 1, traj_callback);
   ros::Subscriber mode_sub = nh.subscribe("/current_mode", 1, mode_callback);
@@ -256,6 +264,8 @@ int main(int argc, char * argv[]){
     if (pcl_received && pcl_flag && transformed_pcl){
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_base.pcd").c_str(), plan_cloud);
 	    std::cerr << "Saved " << plan_cloud.size () << " base frame data points " << std::endl;
+      pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_sqr_base.pcd").c_str(), sqr_plan_cloud);
+	    std::cerr << "Saved " << sqr_plan_cloud.size () << " base frame data points " << std::endl;
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_usercam.pcd").c_str(), cloud_cam);
 	    std::cerr << "Saved " << cloud_cam.size () << " user camera frame data points " << std::endl;
       pcl_flag = false;

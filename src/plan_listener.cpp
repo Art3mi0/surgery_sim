@@ -179,6 +179,7 @@ int main(int argc, char** argv){
 	float rob_x;
 	float rob_y;
 	float rob_z;
+	int sqr_fix = 1;
 
 	geometry_msgs::Twist last_sqr_point;
 	pcl::PointXYZI last_sqr_tmp;
@@ -472,7 +473,11 @@ int main(int argc, char** argv){
 					if ((start_mode == "auto") && (hover_point)){
 						plan_point.linear.x = transformed_path.points[i].x;
 						plan_point.linear.y = transformed_path.points[i].y;
-						plan_point.linear.z = transformed_path.points[i].z + .004;
+						if (cut_depth < 0){
+							plan_point.linear.z = transformed_path.points[i].z - cut_depth;
+						} else{
+							plan_point.linear.z = transformed_path.points[i].z + cut_depth + .002;
+						}
 						plan_points.push_back(plan_point);
 						tmp.x = plan_point.linear.x;
 						tmp.y = plan_point.linear.y;
@@ -481,6 +486,8 @@ int main(int argc, char** argv){
 						robot_plan_points.push_back(plan_point);
 						dbg_rob_cloud.points.push_back(tmp);
 						hover_point = false;
+						sqr_plan_points.push_back(plan_point);
+						dbg_sqr_cloud.points.push_back(tmp);
 					}
 					
 					plan_point.linear.x = transformed_path.points[i].x;
@@ -492,6 +499,7 @@ int main(int argc, char** argv){
 					tmp.z = plan_point.linear.z;
 					dbg_cloud.points.push_back(tmp);
 
+					// do sqr_fix
 					if ((i == 0) || (i == transformed_path.points.size()-1)){
 						sqr_plan_points.push_back(plan_point);
 						dbg_sqr_cloud.points.push_back(tmp);
@@ -514,7 +522,7 @@ int main(int argc, char** argv){
 
 						if (tmp_sqr_x > tmp_sqr_y){
 							if (init_sqr_flag){
-								sqr_flag = true;
+								sqr_flag = true; 	//signal for an edge
 								init_sqr_flag = false;
 							} else{
 								if (!sqr_flag){

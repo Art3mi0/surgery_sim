@@ -45,7 +45,7 @@ int height;
 int width;
 int comp_size = 0;
 std::string text = "Standby";
-std::string next_text = "Starting In Manual";
+std::string next_text = "Starting In Autonomous";
 geometry_msgs::Twist robot_point;
 surgery_sim::Plan robot_plan;
 
@@ -58,17 +58,21 @@ int comp_tmp = 0;
 int plan_tmp = 0;
 int color_fix = 0;
 
-int r = 0;
+int r = 0;    // for 1 instance of text
 int g = 0;
 int b = 0;
 
-int r2 = 255;
+int r2 = 255; // for "starting in" text
 int g2 = 255;
 int b2 = 255;
 
-int dr = 255;
+int dr = 255; // for depth text color
 int dg = 255;
 int db = 255;
+
+int cr = 0; // for manual vs auto points and lines
+int cg = 255;
+int cb = 0;
 
 float depth;
 
@@ -82,9 +86,11 @@ bool flagL = false;
 bool flagR = false;
 bool pcl_received = false;
 bool robot_received = false;
+bool got_confidence = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
+pcl::PointCloud<pcl::PointXYZI> confidence_cloud;
 
 // when the mode switches, the text and text color will also change
 bool flag(surgery_sim::Reset::Request  &req,
@@ -181,6 +187,11 @@ void robot_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl_received = true;
 }
 
+void conf_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
+	pcl::fromROSMsg(_data, confidence_cloud);
+  got_confidence = true;
+}
+
 void robot_callback(const geometry_msgs::Twist &  _data){
 	// read the pose of the robot
 	robot_point = _data;
@@ -224,7 +235,7 @@ int main(int argc, char** argv)
 
   cv::Rect crop(crop_x, crop_y, crop_width, crop_height);
 
-  
+  ros::Subscriber conf_points_sub = node.subscribe("/path_confidence" ,1, conf_pcl_callback);
   ros::Subscriber robot_points_sub = node.subscribe("/user_plancloud" ,1, robot_pcl_callback);
   ros::Subscriber completed_sub = node.subscribe("/completed_points" ,1, get_completed);
   ros::Subscriber rob_plan_sub = node.subscribe("/robot_plan" ,1, get_rob_plan);
@@ -250,12 +261,15 @@ int main(int argc, char** argv)
 
   cv::Point2d prev_pt_l;
   cv::Point2d prev_pt_r;
+  int prev;
 
   tf::TransformListener listener;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_l;
   pcl::PointCloud<pcl::PointXYZ>  cloud_out_r;
   pcl::PointCloud<pcl::PointXYZ>  rob_cloud_out_l;
   pcl::PointCloud<pcl::PointXYZ>  rob_cloud_out_r;
+  pcl::PointCloud<pcl::PointXYZI>  conf_cloud_out_l;
+  pcl::PointCloud<pcl::PointXYZI>  conf_cloud_out_r;
   cv::Mat resized_down_l;
   cv::Mat resized_down_r;
   bool got_transform = false;
@@ -278,13 +292,22 @@ int main(int argc, char** argv)
       tf::StampedTransform transform;
       try
       {
+        // just the edges
         pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
         pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
+
         if (dbg){
-          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), robot_plan_cloud, rob_cloud_out_l, listener);
-          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), robot_plan_cloud, rob_cloud_out_r, listener);
-        }
+          // From Planner
+          // pcl_ros::transformPointCloud(cam_model_l.tfFrame(), robot_plan_cloud, rob_cloud_out_l, listener);
+          // pcl_ros::transformPointCloud(cam_model_r.tfFrame(), robot_plan_cloud, rob_cloud_out_r, listener);
+
+          // From Projected error node
+          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), confidence_cloud, conf_cloud_out_l, listener);
+          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), confidence_cloud, conf_cloud_out_r, listener);
+        } 
+        
         got_transform = true;
+
         for (int i = 0; i < cloud_out_l.points.size(); i++){
           cv::Point3d pt_cv_l(cloud_out_l.points[i].x, cloud_out_l.points[i].y, cloud_out_l.points[i].z);
           cv::Point3d pt_cv_r(cloud_out_r.points[i].x, cloud_out_r.points[i].y, cloud_out_r.points[i].z);
@@ -311,35 +334,41 @@ int main(int argc, char** argv)
 
         // If the real robot, it will do what it just did but with the extra pcl.
         if (dbg){
-          for (int i = 0; i < rob_cloud_out_l.points.size(); i++){
-            cv::Point3d rob_pt_cv_l(rob_cloud_out_l.points[i].x, rob_cloud_out_l.points[i].y, rob_cloud_out_l.points[i].z);
-            cv::Point3d rob_pt_cv_r(rob_cloud_out_r.points[i].x, rob_cloud_out_r.points[i].y, rob_cloud_out_r.points[i].z);
+          // change between conf_cloud_out_l/r and rob_cloud_out_l/r
+          for (int i = 1; i < conf_cloud_out_l.points.size(); i++){
+            prev = i - 1;
+            cv::Point3d rob_pt_cv_l(conf_cloud_out_l.points[i].x, conf_cloud_out_l.points[i].y, conf_cloud_out_l.points[i].z);
+            cv::Point3d rob_pt_cv_r(conf_cloud_out_r.points[i].x, conf_cloud_out_r.points[i].y, conf_cloud_out_r.points[i].z);
             cv::Point2d rob_uv_l;
             cv::Point2d rob_uv_r;
-            cv::Point2d test3;
-            cv::Point2d test4;
+            cv::Point2d l_point;
+            cv::Point2d r_point;
             rob_uv_l = cam_model_l.project3dToPixel(rob_pt_cv_l);
             rob_uv_r = cam_model_r.project3dToPixel(rob_pt_cv_r);
-            test3 = cam_model_l.unrectifyPoint(rob_uv_l);
-            test4 = cam_model_r.unrectifyPoint(rob_uv_r);
+            l_point = cam_model_l.unrectifyPoint(rob_uv_l);
+            r_point = cam_model_r.unrectifyPoint(rob_uv_r);
 
-            if (i == 0){
-              prev_pt_l = test3;
-              prev_pt_r = test4;
-            } else{
-              cv::line(cv_ptr_l->image, prev_pt_l, test3, CV_RGB(0,255,0), 2);
-              cv::line(cv_ptr_r->image, prev_pt_r, test4, CV_RGB(0,255,0), 2);
-              prev_pt_l = test3;
-              prev_pt_r = test4;
+            cv::Point3d rob_pt_cv_l2(conf_cloud_out_l.points[prev].x, conf_cloud_out_l.points[prev].y, conf_cloud_out_l.points[prev].z);
+            cv::Point3d rob_pt_cv_r2(conf_cloud_out_r.points[prev].x, conf_cloud_out_r.points[prev].y, conf_cloud_out_r.points[prev].z);
+            cv::Point2d rob_uv_l2;
+            cv::Point2d rob_uv_r2;
+            cv::Point2d l_point2;
+            cv::Point2d r_point2;
+            rob_uv_l2 = cam_model_l.project3dToPixel(rob_pt_cv_l2);
+            rob_uv_r2 = cam_model_r.project3dToPixel(rob_pt_cv_r2);
+            l_point2 = cam_model_l.unrectifyPoint(rob_uv_l2);
+            r_point2 = cam_model_r.unrectifyPoint(rob_uv_r2);
+
+            if ((i < conf_cloud_out_l.points.size()) && (confidence_cloud.points[prev].intensity == 0)){
+              cv::line(cv_ptr_l->image, l_point2, l_point, CV_RGB(cr, cg, cb), 2);
+              cv::line(cv_ptr_r->image, r_point2, r_point, CV_RGB(cr, cg, cb), 2);
+
+              cv::circle(cv_ptr_l->image, l_point, 4, CV_RGB(0,0,255), -1);
+              cv::circle(cv_ptr_r->image, r_point, 4, CV_RGB(0,0,255), -1);
+
+              cv::circle(cv_ptr_l->image, l_point2, 4, CV_RGB(0,0,255), -1);
+              cv::circle(cv_ptr_r->image, r_point2, 4, CV_RGB(0,0,255), -1);
             }
-
-            // if (i == comp_size - color_fix){
-            //   cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,255,0), -1);
-            //   cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,255,0), -1);
-            // } else{
-            //   cv::circle(cv_ptr_l->image, test3, RADIUS, CV_RGB(0,0,255), -1);
-            //   cv::circle(cv_ptr_r->image, test4, RADIUS, CV_RGB(0,0,255), -1);
-            // }
           }
         }
 

@@ -117,6 +117,9 @@ target_link_libraries(reset_node ${catkin_LIBRARIES})
 add_executable(density_calc src/density_calc.cpp)
 target_link_libraries(density_calc ${catkin_LIBRARIES})
 
+add_executable(projected_error src/projected_error.cpp)
+target_link_libraries(projected_error ${catkin_LIBRARIES})
+
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})
 ##add_dependencies(reset_server surgery_sim_gencpp)
