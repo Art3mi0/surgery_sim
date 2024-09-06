@@ -35,6 +35,7 @@ geometry_msgs::PointStamped traj_point_cam;
 omni_msgs::OmniFeedback phantom_ff;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> sqr_plan_cloud;
+pcl::PointCloud<pcl::PointXYZI> conf_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> cam_l_cloud;
 pcl::PointCloud<pcl::PointXYZ> cam_r_cloud;
 surgery_sim::Plan completed_points;
@@ -50,6 +51,7 @@ bool pose_received = false;
 bool traj_received = false;
 bool pcl_received = false;
 bool sqr_pcl_received = false;
+bool conf_pcl_received = false;
 bool caml_received = false;
 bool camr_received = false;
 bool completed_point_received = false;
@@ -165,6 +167,11 @@ void sqr_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	sqr_pcl_received = true;
 }
 
+void conf_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
+	pcl::fromROSMsg(_data, conf_plan_cloud);
+	conf_pcl_received = true;
+}
+
 void caml_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl::fromROSMsg(_data, cam_l_cloud);
 	caml_received = true;
@@ -202,6 +209,7 @@ int main(int argc, char * argv[]){
   ros::Subscriber pedal_sub = nh.subscribe("/pedal",1, pedal_callback);
   ros::Subscriber pcl_sub = nh.subscribe("/robot_plancloud", 1, pcl_callback);
   ros::Subscriber sqr_pcl_sub = nh.subscribe("/plancloud", 1, sqr_pcl_callback);
+  ros::Subscriber conf_pcl_sub = nh.subscribe("/path_confidence", 1, conf_pcl_callback);
   ros::Subscriber pcl_lcam_sub = nh.subscribe("/overlay_cloud_l", 1, caml_callback);
   ros::Subscriber pcl_rcam_sub = nh.subscribe("/overlay_cloud_r", 1, camr_callback);
   ros::Subscriber plan_sub = nh.subscribe("/robot_plan", 1, plan_callback);
@@ -261,11 +269,13 @@ int main(int argc, char * argv[]){
     }
 
     // saves two pointclouds once
-    if (pcl_received && pcl_flag && transformed_pcl){
+    if (pcl_received && pcl_flag && transformed_pcl && conf_pcl_received){
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_base.pcd").c_str(), plan_cloud);
 	    std::cerr << "Saved " << plan_cloud.size () << " base frame data points " << std::endl;
-      pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_sqr_base.pcd").c_str(), sqr_plan_cloud);
-	    std::cerr << "Saved " << sqr_plan_cloud.size () << " base frame data points " << std::endl;
+      // pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_sqr_base.pcd").c_str(), sqr_plan_cloud);
+	    // std::cerr << "Saved " << sqr_plan_cloud.size () << " base frame data points " << std::endl;
+      pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_conf_base.pcd").c_str(), conf_plan_cloud);
+	    std::cerr << "Saved " << conf_plan_cloud.size () << " base frame data points from confidence cloud" << std::endl;
       pcl::io::savePCDFileASCII (("/home/temo/experiment_data/current_participant/"+test_no+"_usercam.pcd").c_str(), cloud_cam);
 	    std::cerr << "Saved " << cloud_cam.size () << " user camera frame data points " << std::endl;
       pcl_flag = false;

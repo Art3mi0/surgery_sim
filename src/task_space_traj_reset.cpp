@@ -232,7 +232,7 @@ int main(int argc, char * argv[])
 
 		std::string subscriber_topic = "/robot_plan";
 		if (sim){
-			subscriber_topic = "/plan";
+			subscriber_topic = "/user_plan";
 		}
 
 		// initializing server

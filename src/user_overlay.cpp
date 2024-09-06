@@ -48,6 +48,7 @@ std::string text = "Standby";
 std::string next_text = "Starting In Autonomous";
 geometry_msgs::Twist robot_point;
 surgery_sim::Plan robot_plan;
+surgery_sim::Plan user_plan;
 
 int crop_x;
 int crop_y;
@@ -70,9 +71,13 @@ int dr = 255; // for depth text color
 int dg = 255;
 int db = 255;
 
-int cr = 0; // for manual vs auto points and lines
+int cr = 0; // for manual vs auto lines
 int cg = 255;
 int cb = 0;
+
+int pr = 0; // for points
+int pg = 0;
+int pb = 255;
 
 float depth;
 
@@ -89,6 +94,7 @@ bool robot_received = false;
 bool got_confidence = false;
 pcl::PointCloud<pcl::PointXYZ> plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
+// pcl::PointCloud<pcl::PointXYZ> user_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
 pcl::PointCloud<pcl::PointXYZI> confidence_cloud;
 
@@ -139,6 +145,10 @@ void get_rob_plan(const surgery_sim::Plan & _data){
   robot_plan = _data;
 }
 
+void get_user_plan(const surgery_sim::Plan & _data){
+  user_plan = _data;
+}
+
 void imageCbL(const sensor_msgs::ImageConstPtr& image_msg_l,
 const sensor_msgs::CameraInfoConstPtr& info_msg_l)
 {
@@ -186,6 +196,10 @@ void robot_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl::fromROSMsg(_data, robot_plan_cloud);
 	pcl_received = true;
 }
+// void user_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
+// 	pcl::fromROSMsg(_data, user_plan_cloud);
+// 	pcl_received = true;
+// }
 
 void conf_pcl_callback(const sensor_msgs::PointCloud2 &  _data){
 	pcl::fromROSMsg(_data, confidence_cloud);
@@ -205,17 +219,23 @@ int main(int argc, char** argv)
   ros::NodeHandle home("~");
 	std::string source = "plan";
   std::string mode = "crop";
+  std::string start_mode = "manual";
   bool sim = true;
   bool dbg = true;
 	home.getParam("sim", sim); // options are: "true"; "false"
   home.getParam("dbg", dbg); // options are: "true"; "false"
 	home.getParam("source", source); // options are: "click"; "plan"; "path"
   home.getParam("mode", mode); // options are: "resize"; "crop"; "full"; "crop_resize"
-  image_transport::ImageTransport it(node);
+  home.getParam("start_mode", start_mode); // options are : manual; auto
 
+  if (start_mode == "manual"){
+    next_text = "Starting In Manual";
+  }
+  
+  image_transport::ImageTransport it(node);
   ros::ServiceServer service = node.advertiseService("overlay_server", flag);
 
-  std::string subscriber_topic = "/plancloud";
+  std::string subscriber_topic = "/user_plancloud";
   if (source == "click"){
     subscriber_topic = "/test_cloud";
   } else if (source == "path"){
@@ -236,9 +256,11 @@ int main(int argc, char** argv)
   cv::Rect crop(crop_x, crop_y, crop_width, crop_height);
 
   ros::Subscriber conf_points_sub = node.subscribe("/path_confidence" ,1, conf_pcl_callback);
-  ros::Subscriber robot_points_sub = node.subscribe("/user_plancloud" ,1, robot_pcl_callback);
+  ros::Subscriber robot_points_sub = node.subscribe("/robot_plancloud" ,1, robot_pcl_callback);
+  // ros::Subscriber user_points_sub = node.subscribe("/user_plancloud" ,1, user_pcl_callback);
   ros::Subscriber completed_sub = node.subscribe("/completed_points" ,1, get_completed);
   ros::Subscriber rob_plan_sub = node.subscribe("/robot_plan" ,1, get_rob_plan);
+  ros::Subscriber user_plan_sub = node.subscribe("/user_plan" ,1, get_user_plan);
   ros::Subscriber pcl_sub = node.subscribe(subscriber_topic, 1, pcl_callback); // cloud from chosen source
   ros::Subscriber robot_pos_sub = node.subscribe("/ur5e/toolpose",10, robot_callback);
   ros::Publisher pcl_l_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_l", 1);
@@ -292,11 +314,7 @@ int main(int argc, char** argv)
       tf::StampedTransform transform;
       try
       {
-        // just the edges
-        pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
-        pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
-
-        if (dbg){
+        if (dbg){ // dbg needs to be changed to a better name. dbg means using the projected error
           // From Planner
           // pcl_ros::transformPointCloud(cam_model_l.tfFrame(), robot_plan_cloud, rob_cloud_out_l, listener);
           // pcl_ros::transformPointCloud(cam_model_r.tfFrame(), robot_plan_cloud, rob_cloud_out_r, listener);
@@ -304,33 +322,17 @@ int main(int argc, char** argv)
           // From Projected error node
           pcl_ros::transformPointCloud(cam_model_l.tfFrame(), confidence_cloud, conf_cloud_out_l, listener);
           pcl_ros::transformPointCloud(cam_model_r.tfFrame(), confidence_cloud, conf_cloud_out_r, listener);
-        } 
+        } else {
+          // set dbg false then uncomment this for exact robot point. Do this for calibration and checking if accurate.
+          pcl_ros::transformPointCloud(cam_model_l.tfFrame(), robot_plan_cloud, cloud_out_l, listener);
+          pcl_ros::transformPointCloud(cam_model_r.tfFrame(), robot_plan_cloud, cloud_out_r, listener);
+
+          // Uncomment this for surface points. Only set of code from this else section can be uncommented at a time.
+          // pcl_ros::transformPointCloud(cam_model_l.tfFrame(), plan_cloud, cloud_out_l, listener);
+          // pcl_ros::transformPointCloud(cam_model_r.tfFrame(), plan_cloud, cloud_out_r, listener);
+        }
         
         got_transform = true;
-
-        for (int i = 0; i < cloud_out_l.points.size(); i++){
-          cv::Point3d pt_cv_l(cloud_out_l.points[i].x, cloud_out_l.points[i].y, cloud_out_l.points[i].z);
-          cv::Point3d pt_cv_r(cloud_out_r.points[i].x, cloud_out_r.points[i].y, cloud_out_r.points[i].z);
-          cv::Point2d uv_l;
-          cv::Point2d uv_r;
-          cv::Point2d test1;
-          cv::Point2d test2;
-
-          uv_l = cam_model_l.project3dToPixel(pt_cv_l);
-          uv_r = cam_model_r.project3dToPixel(pt_cv_r);
-          // I'm pretty sure the points are projected to a rectified image, and unrectifying the points improve
-          // precision of points
-          test1 = cam_model_l.unrectifyPoint(uv_l);
-          test2 = cam_model_r.unrectifyPoint(uv_r);
-
-          if (i == comp_size - color_fix){
-            cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(0,255,0), -1);
-            cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(0,255,0), -1);
-          } else{
-            cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(255,0,0), -1);
-            cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(255,0,0), -1);
-          }
-        }
 
         // If the real robot, it will do what it just did but with the extra pcl.
         if (dbg){
@@ -359,15 +361,51 @@ int main(int argc, char** argv)
             l_point2 = cam_model_l.unrectifyPoint(rob_uv_l2);
             r_point2 = cam_model_r.unrectifyPoint(rob_uv_r2);
 
-            if ((i < conf_cloud_out_l.points.size()) && (confidence_cloud.points[prev].intensity == 0)){
-              cv::line(cv_ptr_l->image, l_point2, l_point, CV_RGB(cr, cg, cb), 2);
-              cv::line(cv_ptr_r->image, r_point2, r_point, CV_RGB(cr, cg, cb), 2);
+            if ((i < conf_cloud_out_l.points.size())){
+              if ((confidence_cloud.points[prev].intensity == 0) && (start_mode == "auto")){
+                cv::line(cv_ptr_l->image, l_point2, l_point, CV_RGB(cr, cg, cb), 2);
+                cv::line(cv_ptr_r->image, r_point2, r_point, CV_RGB(cr, cg, cb), 2);
 
-              cv::circle(cv_ptr_l->image, l_point, 4, CV_RGB(0,0,255), -1);
-              cv::circle(cv_ptr_r->image, r_point, 4, CV_RGB(0,0,255), -1);
+                cv::circle(cv_ptr_l->image, l_point, 4, CV_RGB(pr,pg,pb), -1);
+                cv::circle(cv_ptr_r->image, r_point, 4, CV_RGB(pr,pg,pb), -1);
+                if ((i == 1)){
+                  cv::circle(cv_ptr_l->image, l_point2, 4, CV_RGB(250,150,250), -1);
+                  cv::circle(cv_ptr_r->image, r_point2, 4, CV_RGB(250,150,250), -1);
+                } else{
+                  cv::circle(cv_ptr_l->image, l_point2, 4, CV_RGB(pr,pg,pb), -1);
+                  cv::circle(cv_ptr_r->image, r_point2, 4, CV_RGB(pr,pg,pb), -1);
+                }
+              } else if (start_mode == "manual"){
+                cv::circle(cv_ptr_l->image, l_point, 4, CV_RGB(pr,pg,pb), -1);
+                cv::circle(cv_ptr_r->image, r_point, 4, CV_RGB(pr,pg,pb), -1);
 
-              cv::circle(cv_ptr_l->image, l_point2, 4, CV_RGB(0,0,255), -1);
-              cv::circle(cv_ptr_r->image, r_point2, 4, CV_RGB(0,0,255), -1);
+                cv::circle(cv_ptr_l->image, l_point2, 4, CV_RGB(pr,pg,pb), -1);
+                cv::circle(cv_ptr_r->image, r_point2, 4, CV_RGB(pr,pg,pb), -1);
+              }
+            }
+          }
+        } else{
+          for (int i = 0; i < cloud_out_l.points.size(); i++){
+            cv::Point3d pt_cv_l(cloud_out_l.points[i].x, cloud_out_l.points[i].y, cloud_out_l.points[i].z);
+            cv::Point3d pt_cv_r(cloud_out_r.points[i].x, cloud_out_r.points[i].y, cloud_out_r.points[i].z);
+            cv::Point2d uv_l;
+            cv::Point2d uv_r;
+            cv::Point2d test1;
+            cv::Point2d test2;
+
+            uv_l = cam_model_l.project3dToPixel(pt_cv_l);
+            uv_r = cam_model_r.project3dToPixel(pt_cv_r);
+            // I'm pretty sure the points are projected to a rectified image, and unrectifying the points improve
+            // precision of points
+            test1 = cam_model_l.unrectifyPoint(uv_l);
+            test2 = cam_model_r.unrectifyPoint(uv_r);
+
+            if (i == comp_size - color_fix){
+              cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(0,255,0), -1);
+              cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(0,255,0), -1);
+            } else{
+              cv::circle(cv_ptr_l->image, test1, RADIUS, CV_RGB(255,0,0), -1);
+              cv::circle(cv_ptr_r->image, test2, RADIUS, CV_RGB(255,0,0), -1);
             }
           }
         }
@@ -447,9 +485,9 @@ int main(int argc, char** argv)
             dg = 255;
             db = 255;
           } else if (depth >= .5){  // Light green if close above
-            dr = 167;
-            dg = 235;
-            db = 167;
+            dr = 90;
+            dg = 240;
+            db = 50;
           } else if (depth >= -.5){  // Green if close
             dr = 0;
             dg = 120;
@@ -517,7 +555,42 @@ int main(int argc, char** argv)
           cv::FONT_HERSHEY_DUPLEX,
           text_size * 0.35, 
           CV_RGB(255, 255, 0),
-        2);
+          2);
+
+          //Begin depth display
+          depth = robot_point.linear.z - user_plan.points[comp_size].linear.z;
+          depth = depth * 1000; // Converts to mm
+          if (depth >= 1){          // White if freater than 1mm
+            dr = 255;
+            dg = 255;
+            db = 255;
+          } else if (depth >= .5){  // Light green if close above
+            dr = 90;
+            dg = 240;
+            db = 50;
+          } else if (depth >= -.5){  // Green if close
+            dr = 0;
+            dg = 120;
+            db = 0;
+          } else if (depth >= -1){   // Yellow if close below
+            dr = 255;
+            dg = 255;
+            db = 0;
+          } else{   // Red if too deep
+            dr = 255;
+            dg = 0;
+            db = 0;
+          }
+          depth_str = std::to_string(depth);
+          depth_str.resize(depth_str.size()-4);
+          cv::putText(cv_ptr_l->image, 
+          depth_str + "mm",
+          cv::Point((crop.width / .88), crop.height * 1.41), 
+          cv::FONT_HERSHEY_DUPLEX,
+          text_size * 0.35, 
+          CV_RGB(dr, dg, db),
+          2);
+          //End depth display
         }
 
         l_img_ptr = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr_l->image(crop)).toImageMsg();

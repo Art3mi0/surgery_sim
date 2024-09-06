@@ -91,7 +91,7 @@ int main(int argc, char** argv){
 	bool sim = true;
 	home.getParam("sim", sim); // options are: "true"; "false"
 
-	std::string subscriber_topic = "/plan";
+	std::string subscriber_topic = "/user_plan";
 
 	if (!sim){
 		subscriber_topic = "/robot_plan";

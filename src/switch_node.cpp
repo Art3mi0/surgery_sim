@@ -213,7 +213,9 @@ int main(int argc, char* argv[]){
 
 	ros::NodeHandle home("~");
   bool sim = true;
+	std::string start_mode = "manual";
 	home.getParam("sim", sim); // options are: "true"; "false"
+	home.getParam("start_mode", start_mode); // options are : manual; auto
   
   // initializing server interaction
   ros::ServiceClient traj_client = node.serviceClient<surgery_sim::Reset>("reset");
@@ -243,13 +245,19 @@ int main(int argc, char* argv[]){
   // Publisher for the force feedback of haptic device
   ros::Publisher force_pub =node.advertise<omni_msgs::OmniFeedback>("/phantom/phantom/force_feedback",1);
 	ros::Publisher pub_mode= node.advertise<std_msgs::Int32>( "/current_mode", 1 );
-  
+
   bool white_flag = true;
   bool grey_flag = false;
 	bool stop = false;
   bool robot_flag = true;
 	std_msgs::Int32 current_mode;
-	current_mode.data = 1; // 0 = autonomous; 1 = manual
+	current_mode.data = 0; // 0 = autonomous; 1 = manual
+
+	if (start_mode == "manual"){
+		white_flag = false;
+		grey_flag = true;
+		current_mode.data = 1;
+	}
   
   double rx;
 	double ry;
@@ -260,11 +268,11 @@ int main(int argc, char* argv[]){
 	if (!sim){
 		// real robot box
 		x_max = 0.11;
-		x_min = 0.03028;
+		x_min = 0.0148;
 		y_max = 0.0008;
 		y_min = -0.669;
 		z_max = 0.0762;
-		z_min = 0.018;
+		z_min = 0.0138;
 	}
 	// x=0.03028, y=0.0008, z=0.0181
   
@@ -279,9 +287,13 @@ int main(int argc, char* argv[]){
 				// unless the user moves faster than the loop frequency
 				// click count flag is for when the robot is first initialized
 				if (((!white_flag) || (click_count == 0)) && (right_click_count > 0)){
-					rx = 2 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
-					ry = 2 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
-					rz = 2 * (robot_point.linear.z - robot_initial.linear.z) + origin_z;
+					// rx = 2 * (robot_point.linear.x - robot_initial.linear.x) + origin_x;
+					// ry = 2 * (robot_point.linear.y - robot_initial.linear.y) + origin_y;
+					// rz = 2 * (robot_point.linear.z - robot_initial.linear.z) + origin_z;
+
+					rx = (robot_point.linear.x - robot_initial.linear.x) + origin_x;
+					ry = (robot_point.linear.y - robot_initial.linear.y) + origin_y;
+					rz = (robot_point.linear.z - robot_initial.linear.z) + origin_z;
 					
 				}else{
 					rx = phantom_pos.pose.position.x;

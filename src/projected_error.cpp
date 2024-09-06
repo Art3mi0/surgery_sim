@@ -44,10 +44,6 @@ int edge2_start = 99;
 int edge3_start = 99;
 int edge4_start = 99;
 
-float auto_to_man_cost = 3.0; // 2.0 +- 1.0
-float man_to_auto_cost = 2.1; // 1.7 +- 0.4
-float man_cost = 3.59; // 2.49 +- 1.1
-
 float confidence_threshold = 8.4241; //original
 float auto_to_man_threshold = 5.59; // cost to switch to manual
 float man_to_auto_threshold = 3.12; // just the cost of teleoperation
@@ -138,10 +134,11 @@ bool between_caps(geometry_msgs::Vector3 x0, geometry_msgs::Vector3 x1,geometry_
 
   float dot_prod = diff1.x*diff2.x + diff1.y*diff2.y + diff1.z*diff2.z;
   
-  if(dot_prod < 0.0 || dot_prod > h)
-	return false;
-  else
-	return true;
+  if(dot_prod < 0.0 || dot_prod > h){
+		return false;
+	}else{
+		return true;
+  }
 
 }
 
@@ -151,8 +148,11 @@ float calc_density(geometry_msgs::Vector3 x1, geometry_msgs::Vector3 x2, pcl::Po
 	pcl::PointCloud<pcl::PointXYZ>::iterator pi=pcd.begin();
 	float density = 0.0;
 	int ctr = 0;
-  float r_c = 0.0025;//radius of the cylinder for finding point dentisty between two points
+  float r_c = 0.002;//0.0025;//radius of the cylinder for finding point dentisty between two points
 	double h = vec_len(x1, x2);
+	cout <<"start point (cap): " <<  x1<<endl;
+ 	cout <<"end point (cap): " <<  x2<<endl;
+	cout <<"height: " <<  h<<endl;
 	//cout <<"read" << pcd.points.size()<< " points from the pcd"<<endl;
 	for( ; pi!=pcd.end(); pi++ ) {
 
@@ -254,11 +254,21 @@ int main(int argc, char** argv){
   ros::NodeHandle node;
 	ros::NodeHandle home("~");
 	
-	bool edge_only = true;
+	bool edge_only = false;
+	bool with_cost = true;
 	std::string start_mode = "manual";
-	home.getParam("edge_only", edge_only); //
+	float man_cost = 3.59; // 2.49 +- 1.1
+	home.getParam("with_cost", with_cost); //
 	home.getParam("start_mode", start_mode); // options are : manual; auto
-	home.getParam("confidence_threshold", confidence_threshold); // options are : manual; auto
+	home.getParam("man_cost", man_cost);
+
+	float auto_to_man_cost = 3.0;
+	float man_to_auto_cost = 1.7;
+
+	if (!with_cost){
+		auto_to_man_cost = 0.0;
+		man_to_auto_cost = 0.0;
+	}
 
 	ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 	ros::Subscriber user_plan_cloud_sub = node.subscribe("/user_plancloud", 1, user_pcl_callback);
@@ -354,13 +364,13 @@ int main(int argc, char** argv){
 					// std::cout<<"projected error is: "<< proj_err<<std::endl;
 					if (auto_mode){
 						cost_of_current = calc_projected_err(roll, pitch, mid_dist, density);
-						std::cout<<"projected error is (including t cost): "<< cost_of_current + auto_to_man_cost << " vs: " << man_cost<<std::endl;
+						std::cout<<"projected error is: "<< cost_of_current << " vs (w/ cost): " << man_cost + auto_to_man_cost <<std::endl;
 					} else{
 						cost_of_next = calc_projected_err(roll, pitch, mid_dist, density);
-						std::cout<<"projected error is: "<< cost_of_next<< " vs: " << man_cost + man_to_auto_cost <<std::endl;
+						std::cout<<"projected error is (w/ cost): "<< cost_of_next + man_to_auto_cost<< " vs: " << man_cost <<std::endl;
 					}
 
-					if((cost_of_next < cost_of_current + t_cost) || ((start_mode == "auto") && (pts_id == 0))){
+					if(((cost_of_next + t_cost) < cost_of_current) || ((start_mode == "auto") && (pts_id == 0))){
 						if ((start_mode == "auto") && (pts_id == 0)){
 							auto_mode = true;
 						} else if (auto_mode){
