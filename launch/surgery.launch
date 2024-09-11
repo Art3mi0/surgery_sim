@@ -1,5 +1,5 @@
 <launch>
-	<arg name="px_x" value="dbgSim" />
+	<arg name="px_x" value="p3_sim" />
 	<arg name="is_sim" value="true" />
 	<arg name="mode" value="manual" />	<!-- "auto"; "manual" -->
 	

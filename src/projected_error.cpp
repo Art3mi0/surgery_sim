@@ -14,6 +14,8 @@
 #include <surgery_sim/Density.h>
 #include <list>
 #include <surgery_sim/PedalEvent.h>
+#include <dynamic_reconfigure/server.h>
+#include <surgery_sim/ErrConfigConfig.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -52,6 +54,23 @@ float roll = 0.038;
 
 int right_count = 0;
 bool held = false;
+
+bool pause_pub = false;
+float c_radius = 0.0015;
+bool config_init = true;
+
+// For dynamic reconfigure
+void callback(surgery_sim::ErrConfigConfig &config, uint32_t level) {
+  // makes unchecking boxes at end unnecessary
+  if (config_init){
+    config.pause = false;
+		config.cylinder_radius_param = 0.0015;
+    config_init = false;
+  }
+	pause_pub = config.pause;
+	c_radius = config.cylinder_radius_param;
+
+}
 
 // cross product of two 3D vectors
 geometry_msgs::Vector3 cross_product(geometry_msgs::Vector3 & a_, geometry_msgs::Vector3 & b_){
@@ -148,7 +167,8 @@ float calc_density(geometry_msgs::Vector3 x1, geometry_msgs::Vector3 x2, pcl::Po
 	pcl::PointCloud<pcl::PointXYZ>::iterator pi=pcd.begin();
 	float density = 0.0;
 	int ctr = 0;
-  float r_c = 0.002;//0.0025;//radius of the cylinder for finding point dentisty between two points
+  // float r_c = 0.002;//0.0025;//radius of the cylinder for finding point dentisty between two points
+	float r_c = c_radius;
 	double h = vec_len(x1, x2);
 	cout <<"start point (cap): " <<  x1<<endl;
  	cout <<"end point (cap): " <<  x2<<endl;
@@ -261,6 +281,7 @@ int main(int argc, char** argv){
 	home.getParam("with_cost", with_cost); //
 	home.getParam("start_mode", start_mode); // options are : manual; auto
 	home.getParam("man_cost", man_cost);
+	//home.getParam("c_radius", c_radius);
 
 	float auto_to_man_cost = 3.0;
 	float man_to_auto_cost = 1.7;
@@ -278,6 +299,12 @@ int main(int argc, char** argv){
 	//ros::Subscriber crop_cloud_sub = node.subscribe("/camera/depth_registered/points", 1, cropped_pcl_callback);
 
 	ros::Publisher pub_path_confidence= node.advertise<sensor_msgs::PointCloud2>("/path_confidence", 10);
+
+	dynamic_reconfigure::Server<surgery_sim::ErrConfigConfig> server;
+  dynamic_reconfigure::Server<surgery_sim::ErrConfigConfig>::CallbackType f;
+
+  f = boost::bind(&callback, _1, _2);
+  server.setCallback(f);
 
   tf::TransformListener listener;
 	bool transformed = false;
@@ -435,7 +462,7 @@ int main(int argc, char** argv){
 			//header.seq = seq++;
 			header.frame_id = std::string("/camera_color_optical_frame");
 			confidence_path_pcl.header = pcl_conversions::toPCL(header);
-			if (right_count < 2){
+			if (!pause_pub){
 				pub_path_confidence.publish(confidence_path_pcl);
 			}
 

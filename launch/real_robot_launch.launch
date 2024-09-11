@@ -1,6 +1,6 @@
 <launch>
 
-	<arg name="px_x" value="dbg" />
+	<arg name="px_x" value="p3_train" />
 	<arg name="is_sim" value="false" />
 	<arg name="mode" value="auto" />	<!-- "auto"; "manual" -->
 
@@ -13,7 +13,7 @@
 	<node pkg="surgery_sim" type="plan_listener" name="plan_listener" output="screen" >
 		<param name="plan_type" value="planner"/>
 		<param name="start_mode" value="$(arg mode)"/>
-		<param name="cut_depth" value="-0.005"/>
+		<param name="cut_depth" value="0.005"/>
 	</node>
 	<node pkg="surgery_sim" type="pedal_controller" name="pedal_controller" />
 	<node pkg="surgery_sim" type="point_counter" name="point_counter" output="screen" >
@@ -35,14 +35,14 @@
 		<param name="source" value="plan"/>
 		<param name="mode" value="crop_resize"/>
 		<param name="sim" value="$(arg is_sim)"/>
-		<param name="dbg" value="true"/>
+		<param name="dbg" value="false"/>
 		<param name="start_mode" value="$(arg mode)"/>
 	</node>
 	<node pkg="surgery_sim" type="record_bag.sh" name="record_bag" output="screen" args="$(arg px_x)" />
 	<!--node pkg="surgery_sim" type="density_calc" name="density_calc" /-->
 	<node pkg="surgery_sim" type="projected_error" name="projected_error" output="screen" >
 		<param name="start_mode" value="$(arg mode)"/>
-		<param name="with_cost" value="true"/>
+		<param name="with_cost" value="false"/>
 		<param name="man_cost" value="3.59"/>	<!-- 3.59 actual; ~10 for pure auto -->
 	</node>
 

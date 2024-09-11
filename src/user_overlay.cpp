@@ -15,6 +15,7 @@
 #include <surgery_sim/Plan.h>
 #include <math.h>
 #include <string>
+#include <surgery_sim/PedalEvent.h>
 
 
 /*
@@ -97,6 +98,23 @@ pcl::PointCloud<pcl::PointXYZ> robot_plan_cloud;
 // pcl::PointCloud<pcl::PointXYZ> user_plan_cloud;
 pcl::PointCloud<pcl::PointXYZ> test_cloud;
 pcl::PointCloud<pcl::PointXYZI> confidence_cloud;
+
+int right_count = 0;
+bool held = false;
+
+void pedal_callback(const surgery_sim::PedalEvent & _data){
+	if (_data.right_pedal == 1){
+			if (!held){
+					held = true;
+					right_count++;
+          if (right_count == 2){
+            text = "Ready To Start";
+          }
+			}
+	} else{
+			held = false;
+	}
+}
 
 // when the mode switches, the text and text color will also change
 bool flag(surgery_sim::Reset::Request  &req,
@@ -221,7 +239,7 @@ int main(int argc, char** argv)
   std::string mode = "crop";
   std::string start_mode = "manual";
   bool sim = true;
-  bool dbg = true;
+  bool dbg = false;
 	home.getParam("sim", sim); // options are: "true"; "false"
   home.getParam("dbg", dbg); // options are: "true"; "false"
 	home.getParam("source", source); // options are: "click"; "plan"; "path"
@@ -265,6 +283,7 @@ int main(int argc, char** argv)
   ros::Subscriber robot_pos_sub = node.subscribe("/ur5e/toolpose",10, robot_callback);
   ros::Publisher pcl_l_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_l", 1);
   ros::Publisher pcl_r_pub = node.advertise<pcl::PointCloud<pcl::PointXYZ> >("/overlay_cloud_r", 1);
+  ros::Subscriber pedal_sub = node.subscribe("/pedal", 1, pedal_callback);
 
 // should subscribe to image_rect_color when using real cameras. Need to run image_proc for this topic
   image_transport::CameraSubscriber subL = it.subscribeCamera("/stereo/left/image_raw", 1, imageCbL);

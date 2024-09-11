@@ -51,6 +51,7 @@ generate_messages(
 
 generate_dynamic_reconfigure_options(
   cfg/HapConfig.cfg
+  cfg/ErrConfig.cfg
 )
 
 catkin_package(
@@ -119,6 +120,7 @@ target_link_libraries(density_calc ${catkin_LIBRARIES})
 
 add_executable(projected_error src/projected_error.cpp)
 target_link_libraries(projected_error ${catkin_LIBRARIES})
+add_dependencies(projected_error ${PROJECT_NAME}_gencfg)
 
 ##add_executable(reset_server src/reset_server.cpp)
 ##target_link_libraries(reset_server ${catkin_LIBRARIES})
